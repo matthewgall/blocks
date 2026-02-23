@@ -139,110 +139,6 @@ func extractCurrency(html string) string {
 	return ""
 }
 
-func splitPriceGuideColumns(root *html.Node) (*html.Node, *html.Node, *html.Node, *html.Node) {
-	row := findPriceGuideRow(root)
-	if row == nil {
-		return nil, nil, nil, nil
-	}
-	var cells []*html.Node
-	for child := row.FirstChild; child != nil; child = child.NextSibling {
-		if child.Type == html.ElementNode && strings.EqualFold(child.Data, "td") {
-			if strings.EqualFold(getAttr(child, "valign"), "top") {
-				cells = append(cells, child)
-			}
-		}
-	}
-	if len(cells) < 4 {
-		return nil, nil, nil, nil
-	}
-	return cells[0], cells[1], cells[2], cells[3]
-}
-
-func extractLabelInt(node *html.Node, label string) int {
-	value := extractLabelString(node, label)
-	return parseInt(value)
-}
-
-func extractLabelString(node *html.Node, label string) string {
-	if node == nil {
-		return ""
-	}
-	labelLower := strings.ToLower(label)
-	var value string
-	walk(node, func(n *html.Node) bool {
-		if n.Type == html.ElementNode && strings.EqualFold(n.Data, "tr") {
-			cells := rowCells(n)
-			if len(cells) < 2 {
-				return false
-			}
-			labelText := strings.ToLower(strings.TrimSpace(nodeText(cells[0])))
-			if strings.HasPrefix(labelText, strings.ToLower(labelLower)) {
-				valueText := strings.TrimSpace(nodeText(cells[1]))
-				value = strings.TrimSpace(stripLabelArtifacts(valueText))
-				return true
-			}
-		}
-		return false
-	})
-	return value
-}
-
-func findPriceGuideRow(root *html.Node) *html.Node {
-	var row *html.Node
-	walk(root, func(n *html.Node) bool {
-		if n.Type == html.ElementNode && strings.EqualFold(n.Data, "tr") {
-			if strings.EqualFold(getAttr(n, "bgcolor"), "#C0C0C0") {
-				row = n
-				return true
-			}
-		}
-		return false
-	})
-	return row
-}
-
-func findFirstElement(node *html.Node, tag string) *html.Node {
-	var found *html.Node
-	walk(node, func(n *html.Node) bool {
-		if n.Type == html.ElementNode && strings.EqualFold(n.Data, tag) {
-			found = n
-			return true
-		}
-		return false
-	})
-	return found
-}
-
-func nodeText(node *html.Node) string {
-	if node == nil {
-		return ""
-	}
-	var builder strings.Builder
-	walk(node, func(n *html.Node) bool {
-		if n.Type == html.TextNode {
-			builder.WriteString(n.Data)
-			builder.WriteString(" ")
-		}
-		return false
-	})
-	return builder.String()
-}
-
-func rowCells(row *html.Node) []*html.Node {
-	var cells []*html.Node
-	for child := row.FirstChild; child != nil; child = child.NextSibling {
-		if child.Type == html.ElementNode && strings.EqualFold(child.Data, "td") {
-			cells = append(cells, child)
-		}
-	}
-	return cells
-}
-
-func stripLabelArtifacts(value string) string {
-	value = strings.ReplaceAll(value, "\u00a0", " ")
-	return strings.TrimSpace(value)
-}
-
 func detectCurrency(values ...string) string {
 	for _, value := range values {
 		trimmed := strings.TrimSpace(value)
@@ -358,27 +254,6 @@ func formatAverage(values []float64) string {
 	}
 	avg := sum / float64(len(values))
 	return fmt.Sprintf("%.2f", avg)
-}
-
-func walk(node *html.Node, visitor func(*html.Node) bool) bool {
-	if visitor(node) {
-		return true
-	}
-	for child := node.FirstChild; child != nil; child = child.NextSibling {
-		if walk(child, visitor) {
-			return true
-		}
-	}
-	return false
-}
-
-func getAttr(node *html.Node, key string) string {
-	for _, attr := range node.Attr {
-		if strings.EqualFold(attr.Key, key) {
-			return strings.TrimSpace(attr.Val)
-		}
-	}
-	return ""
 }
 
 func parseInt(value string) int {

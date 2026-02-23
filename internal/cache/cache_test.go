@@ -84,7 +84,9 @@ func TestCache_Set(t *testing.T) {
 
 	// Verify it was set
 	var count int
-	db.QueryRow("SELECT COUNT(*) FROM external_cache WHERE cache_key = ?", "test-key").Scan(&count)
+	if err := db.QueryRow("SELECT COUNT(*) FROM external_cache WHERE cache_key = ?", "test-key").Scan(&count); err != nil {
+		t.Fatalf("Failed to verify cache entry: %v", err)
+	}
 	if count != 1 {
 		t.Errorf("Set() should have created 1 row, got %d", count)
 	}
@@ -99,7 +101,9 @@ func TestCache_Delete(t *testing.T) {
 
 	// First set something
 	payload := map[string]string{"test": "data"}
-	cache.Set(ctx, models.ProviderBrickset, "test-key", payload, time.Hour, nil)
+	if err := cache.Set(ctx, models.ProviderBrickset, "test-key", payload, time.Hour, nil); err != nil {
+		t.Fatalf("Set() error = %v", err)
+	}
 
 	// Then delete it
 	err := cache.Delete(ctx, models.ProviderBrickset, "test-key")
@@ -155,10 +159,14 @@ func TestCache_ClearExpired(t *testing.T) {
 
 	// Set one expired and one not expired
 	payload1 := map[string]string{"test": "expired"}
-	cache.Set(ctx, models.ProviderBrickset, "expired-key", payload1, 50*time.Millisecond, nil)
+	if err := cache.Set(ctx, models.ProviderBrickset, "expired-key", payload1, 50*time.Millisecond, nil); err != nil {
+		t.Fatalf("Set() error = %v", err)
+	}
 
 	payload2 := map[string]string{"test": "valid"}
-	cache.Set(ctx, models.ProviderBrickset, "valid-key", payload2, time.Hour, nil)
+	if err := cache.Set(ctx, models.ProviderBrickset, "valid-key", payload2, time.Hour, nil); err != nil {
+		t.Fatalf("Set() error = %v", err)
+	}
 
 	// Wait for first to expire
 	time.Sleep(100 * time.Millisecond)
@@ -170,8 +178,12 @@ func TestCache_ClearExpired(t *testing.T) {
 
 	// Check counts
 	var expiredCount, validCount int
-	db.QueryRow("SELECT COUNT(*) FROM external_cache WHERE cache_key = ?", "expired-key").Scan(&expiredCount)
-	db.QueryRow("SELECT COUNT(*) FROM external_cache WHERE cache_key = ?", "valid-key").Scan(&validCount)
+	if err := db.QueryRow("SELECT COUNT(*) FROM external_cache WHERE cache_key = ?", "expired-key").Scan(&expiredCount); err != nil {
+		t.Fatalf("Failed to count expired entry: %v", err)
+	}
+	if err := db.QueryRow("SELECT COUNT(*) FROM external_cache WHERE cache_key = ?", "valid-key").Scan(&validCount); err != nil {
+		t.Fatalf("Failed to count valid entry: %v", err)
+	}
 
 	if expiredCount != 0 {
 		t.Error("ClearExpired() should have removed expired entry")
@@ -190,8 +202,12 @@ func TestCache_ClearAll(t *testing.T) {
 
 	// Set some entries
 	payload := map[string]string{"test": "data"}
-	cache.Set(ctx, models.ProviderBrickset, "test-key1", payload, time.Hour, nil)
-	cache.Set(ctx, models.ProviderRebrickable, "test-key2", payload, time.Hour, nil)
+	if err := cache.Set(ctx, models.ProviderBrickset, "test-key1", payload, time.Hour, nil); err != nil {
+		t.Fatalf("Set() error = %v", err)
+	}
+	if err := cache.Set(ctx, models.ProviderRebrickable, "test-key2", payload, time.Hour, nil); err != nil {
+		t.Fatalf("Set() error = %v", err)
+	}
 
 	err := cache.ClearAll(ctx)
 	if err != nil {
@@ -200,7 +216,9 @@ func TestCache_ClearAll(t *testing.T) {
 
 	// Check all are gone
 	var count int
-	db.QueryRow("SELECT COUNT(*) FROM external_cache").Scan(&count)
+	if err := db.QueryRow("SELECT COUNT(*) FROM external_cache").Scan(&count); err != nil {
+		t.Fatalf("Failed to count cache entries: %v", err)
+	}
 	if count != 0 {
 		t.Error("ClearAll() should have removed all entries")
 	}

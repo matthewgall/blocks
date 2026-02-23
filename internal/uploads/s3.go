@@ -40,19 +40,7 @@ func NewS3(ctx context.Context, cfg config.UploadsS3Config) (*S3Storage, error) 
 		loadOptions = append(loadOptions, awsconfig.WithCredentialsProvider(provider))
 	}
 
-	if strings.TrimSpace(cfg.Endpoint) != "" {
-		resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, _ ...interface{}) (aws.Endpoint, error) {
-			if service == s3.ServiceID {
-				return aws.Endpoint{
-					URL:               cfg.Endpoint,
-					HostnameImmutable: true,
-					SigningRegion:     cfg.Region,
-				}, nil
-			}
-			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-		})
-		loadOptions = append(loadOptions, awsconfig.WithEndpointResolverWithOptions(resolver))
-	}
+	endpoint := strings.TrimSpace(cfg.Endpoint)
 
 	awsCfg, err := awsconfig.LoadDefaultConfig(ctx, loadOptions...)
 	if err != nil {
@@ -61,6 +49,9 @@ func NewS3(ctx context.Context, cfg config.UploadsS3Config) (*S3Storage, error) 
 
 	client := s3.NewFromConfig(awsCfg, func(options *s3.Options) {
 		options.UsePathStyle = cfg.PathStyle
+		if endpoint != "" {
+			options.BaseEndpoint = aws.String(endpoint)
+		}
 	})
 
 	prefix := strings.Trim(cfg.Prefix, "/")

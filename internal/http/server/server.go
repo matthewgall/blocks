@@ -613,7 +613,9 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 				}
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+				if err := json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"}); err != nil {
+					log.Printf("encode unauthorized response: %v", err)
+				}
 				return
 			}
 		}
@@ -640,7 +642,9 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 					if isAPI {
 						w.Header().Set("Content-Type", "application/json")
 						w.WriteHeader(http.StatusUnauthorized)
-						json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+						if err := json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"}); err != nil {
+							log.Printf("encode unauthorized response: %v", err)
+						}
 						return
 					}
 					http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -651,7 +655,9 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 			if isAPI {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+				if err := json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"}); err != nil {
+					log.Printf("encode unauthorized response: %v", err)
+				}
 				return
 			}
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -962,7 +968,9 @@ func (s *Server) handleNotFound(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(r.URL.Path, "/api") {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "not_found"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "not_found"}); err != nil {
+			log.Printf("encode not_found response: %v", err)
+		}
 		return
 	}
 
@@ -973,7 +981,9 @@ func (s *Server) handleMethodNotAllowed(w http.ResponseWriter, r *http.Request) 
 	if strings.HasPrefix(r.URL.Path, "/api") {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(map[string]string{"error": "method_not_allowed"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "method_not_allowed"}); err != nil {
+			log.Printf("encode method_not_allowed response: %v", err)
+		}
 		return
 	}
 
@@ -989,7 +999,9 @@ func (s *Server) recoverMiddleware(next http.Handler) http.Handler {
 				if strings.HasPrefix(r.URL.Path, "/api") {
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusInternalServerError)
-					json.NewEncoder(w).Encode(map[string]string{"error": "internal_server_error"})
+					if err := json.NewEncoder(w).Encode(map[string]string{"error": "internal_server_error"}); err != nil {
+						log.Printf("encode internal_server_error response: %v", err)
+					}
 					return
 				}
 				message := "We hit an unexpected error. Please try again."
@@ -1307,7 +1319,9 @@ func ensureSessionSecretFingerprint(conn *sql.DB, secret string) (*time.Time, er
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	revokedAt := time.Now().UTC()
 	if _, err := tx.Exec("UPDATE api_tokens SET revoked_at = ? WHERE revoked_at IS NULL", revokedAt); err != nil {
@@ -1405,20 +1419,26 @@ func (s *Server) handleAPILogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid credentials"})
+		if encodeErr := json.NewEncoder(w).Encode(map[string]string{"error": "Invalid credentials"}); encodeErr != nil {
+			log.Printf("encode invalid credentials response: %v", encodeErr)
+		}
 		return
 	}
 
 	if err := s.auth.CheckPassword(req.Password, passwordHash); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid credentials"})
+		if encodeErr := json.NewEncoder(w).Encode(map[string]string{"error": "Invalid credentials"}); encodeErr != nil {
+			log.Printf("encode invalid credentials response: %v", encodeErr)
+		}
 		return
 	}
 	if disabledAt.Valid {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]string{"error": "account_disabled"})
+		if encodeErr := json.NewEncoder(w).Encode(map[string]string{"error": "account_disabled"}); encodeErr != nil {
+			log.Printf("encode account disabled response: %v", encodeErr)
+		}
 		return
 	}
 
@@ -1426,7 +1446,9 @@ func (s *Server) handleAPILogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Unable to sign in"})
+		if encodeErr := json.NewEncoder(w).Encode(map[string]string{"error": "Unable to sign in"}); encodeErr != nil {
+			log.Printf("encode sign in error response: %v", encodeErr)
+		}
 		return
 	}
 
@@ -1441,7 +1463,9 @@ func (s *Server) handleAPILogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"token": token})
+	if err := json.NewEncoder(w).Encode(map[string]string{"token": token}); err != nil {
+		log.Printf("encode token response: %v", err)
+	}
 }
 
 func (s *Server) handleAPILogout(w http.ResponseWriter, r *http.Request) {
@@ -1629,7 +1653,9 @@ func (s *Server) handleImportConfirm(w http.ResponseWriter, r *http.Request) {
 		redirectWithError(w, r, "/import", "Unable to start import")
 		return
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	overrides := parseImportOverrides(r.Form)
 	result := &importResult{
@@ -2186,7 +2212,9 @@ func (s *Server) saveCollectionItemImages(ctx context.Context, itemID int64, fil
 	if err != nil {
 		return fmt.Errorf("Unable to save images")
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	var storedKeys []string
 	for _, header := range files {
@@ -3019,7 +3047,9 @@ func (s *Server) handleListTags(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "database_error"})
+		if encodeErr := json.NewEncoder(w).Encode(map[string]string{"error": "database_error"}); encodeErr != nil {
+			log.Printf("encode database_error response: %v", encodeErr)
+		}
 		return
 	}
 	defer rows.Close()
@@ -3037,7 +3067,9 @@ func (s *Server) handleListTags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tags)
+	if err := json.NewEncoder(w).Encode(tags); err != nil {
+		log.Printf("encode tags response: %v", err)
+	}
 }
 
 func (s *Server) handleSetsPage(w http.ResponseWriter, r *http.Request) {
@@ -3846,7 +3878,9 @@ func (s *Server) handleCollectionImageServe(w http.ResponseWriter, r *http.Reque
 		contentType = http.DetectContentType(buffer[:n])
 		w.Header().Set("Content-Type", contentType)
 		w.Header().Set("Cache-Control", "public, max-age=86400")
-		w.Write(buffer[:n])
+		if _, err := w.Write(buffer[:n]); err != nil {
+			return
+		}
 		_, _ = io.Copy(w, reader)
 		return
 	}
@@ -4082,10 +4116,18 @@ func bricklinkSetCode(setCode string) string {
 func (s *Server) getDashboardStats() map[string]int {
 	var totalSets, totalItems, totalBrands, totalPieces int
 
-	s.db.Conn().QueryRow("SELECT COUNT(*) FROM sets").Scan(&totalSets)
-	s.db.Conn().QueryRow("SELECT COUNT(*) FROM collection_items").Scan(&totalItems)
-	s.db.Conn().QueryRow("SELECT COUNT(*) FROM brands").Scan(&totalBrands)
-	s.db.Conn().QueryRow("SELECT COALESCE(SUM(piece_count), 0) FROM sets").Scan(&totalPieces)
+	if err := s.db.Conn().QueryRow("SELECT COUNT(*) FROM sets").Scan(&totalSets); err != nil {
+		log.Printf("dashboard sets count failed: %v", err)
+	}
+	if err := s.db.Conn().QueryRow("SELECT COUNT(*) FROM collection_items").Scan(&totalItems); err != nil {
+		log.Printf("dashboard items count failed: %v", err)
+	}
+	if err := s.db.Conn().QueryRow("SELECT COUNT(*) FROM brands").Scan(&totalBrands); err != nil {
+		log.Printf("dashboard brands count failed: %v", err)
+	}
+	if err := s.db.Conn().QueryRow("SELECT COALESCE(SUM(piece_count), 0) FROM sets").Scan(&totalPieces); err != nil {
+		log.Printf("dashboard pieces count failed: %v", err)
+	}
 
 	return map[string]int{
 		"TotalSets":   totalSets,
@@ -4265,7 +4307,9 @@ func (s *Server) getAllBrands() []models.Brand {
 	var brands []models.Brand
 	for rows.Next() {
 		var brand models.Brand
-		rows.Scan(&brand.ID, &brand.Name, &brand.Kind, &brand.Notes, &brand.CreatedAt, &brand.UpdatedAt)
+		if err := rows.Scan(&brand.ID, &brand.Name, &brand.Kind, &brand.Notes, &brand.CreatedAt, &brand.UpdatedAt); err != nil {
+			continue
+		}
 		brands = append(brands, brand)
 	}
 	return brands
@@ -4289,12 +4333,14 @@ func (s *Server) getAllSets() []models.Set {
 	for rows.Next() {
 		var set models.Set
 		var brand models.Brand
-		rows.Scan(
+		if err := rows.Scan(
 			&set.ID, &set.BrandID, &set.SetCode, &set.Name, &set.Year, &set.PieceCount,
 			&set.Minifigs, &set.Theme, &set.ImageURL, &set.Notes,
 			&set.CreatedAt, &set.UpdatedAt,
 			&brand.ID, &brand.Name, &brand.Kind, &brand.Notes, &brand.CreatedAt, &brand.UpdatedAt,
-		)
+		); err != nil {
+			continue
+		}
 		set.Brand = &brand
 		sets = append(sets, set)
 	}
@@ -4336,40 +4382,6 @@ func (s *Server) getSetsByBrandID(brandID int64) []models.Set {
 
 	s.attachTagsToSets(sets)
 	return sets
-}
-
-func (s *Server) getAllCollectionItems() []models.CollectionItem {
-	rows, err := s.db.Conn().Query(`
-		SELECT ci.id, ci.set_id, ci.quantity, ci.condition, ci.location, ci.purchase_price,
-		       ci.purchase_date, ci.missing_notes, ci.status, ci.created_at, ci.updated_at,
-		       s.id, s.set_code, s.name
-		FROM collection_items ci
-		JOIN sets s ON s.id = ci.set_id
-		ORDER BY ci.created_at DESC
-	`)
-	if err != nil {
-		return nil
-	}
-	defer rows.Close()
-
-	var items []models.CollectionItem
-	for rows.Next() {
-		var item models.CollectionItem
-		var set models.Set
-		if err := rows.Scan(
-			&item.ID, &item.SetID, &item.Quantity, &item.Condition, &item.Location,
-			&item.PurchasePrice, &item.PurchaseDate, &item.MissingNotes,
-			&item.Status, &item.CreatedAt, &item.UpdatedAt,
-			&set.ID, &set.SetCode, &set.Name,
-		); err != nil {
-			continue
-		}
-		item.Set = &set
-		items = append(items, item)
-	}
-
-	s.attachTagsToCollectionItems(items)
-	return items
 }
 
 func (s *Server) getFilteredSets(search, theme string, tags []string, brandID int64) []models.Set {
@@ -4558,7 +4570,9 @@ func respondUnauthorized(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(r.URL.Path, "/api") {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"}); err != nil {
+			log.Printf("encode unauthorized response: %v", err)
+		}
 		return
 	}
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -4568,7 +4582,9 @@ func respondForbidden(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(r.URL.Path, "/api") {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]string{"error": "forbidden"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "forbidden"}); err != nil {
+			log.Printf("encode forbidden response: %v", err)
+		}
 		return
 	}
 	http.Error(w, "Forbidden", http.StatusForbidden)
@@ -4577,7 +4593,9 @@ func respondForbidden(w http.ResponseWriter, r *http.Request) {
 func respondJSON(w http.ResponseWriter, status int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(payload)
+	if err := json.NewEncoder(w).Encode(payload); err != nil {
+		log.Printf("encode json response: %v", err)
+	}
 }
 
 var rolePolicies = map[string][]models.UserRole{
@@ -5504,7 +5522,9 @@ func (s *Server) buildCollectionImageGallery(items []models.CollectionItem) []co
 
 func (s *Server) handleListBrands(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(s.getAllBrands())
+	if err := json.NewEncoder(w).Encode(s.getAllBrands()); err != nil {
+		log.Printf("encode brands response: %v", err)
+	}
 }
 
 func (s *Server) handleCreateBrand(w http.ResponseWriter, r *http.Request) {
@@ -5535,7 +5555,9 @@ func (s *Server) handleCreateBrand(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(brand)
+	if err := json.NewEncoder(w).Encode(brand); err != nil {
+		log.Printf("encode brand response: %v", err)
+	}
 }
 
 func (s *Server) handleGetBrand(w http.ResponseWriter, r *http.Request) {
@@ -5556,7 +5578,9 @@ func (s *Server) handleGetBrand(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(brand)
+	if err := json.NewEncoder(w).Encode(brand); err != nil {
+		log.Printf("encode brand response: %v", err)
+	}
 }
 
 func (s *Server) handleUpdateBrand(w http.ResponseWriter, r *http.Request) {
@@ -5588,7 +5612,9 @@ func (s *Server) handleUpdateBrand(w http.ResponseWriter, r *http.Request) {
 
 	brand.ID = id
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(brand)
+	if err := json.NewEncoder(w).Encode(brand); err != nil {
+		log.Printf("encode brand response: %v", err)
+	}
 }
 
 func (s *Server) handleDeleteBrand(w http.ResponseWriter, r *http.Request) {
@@ -5625,7 +5651,9 @@ func (s *Server) handleListSets(w http.ResponseWriter, r *http.Request) {
 
 	sets := s.getFilteredSets(search, theme, filterTags, brandID)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(sets)
+	if err := json.NewEncoder(w).Encode(sets); err != nil {
+		log.Printf("encode sets response: %v", err)
+	}
 }
 
 func (s *Server) handleCreateSet(w http.ResponseWriter, r *http.Request) {
@@ -5652,7 +5680,9 @@ func (s *Server) handleCreateSet(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(set)
+	if err := json.NewEncoder(w).Encode(set); err != nil {
+		log.Printf("encode set response: %v", err)
+	}
 }
 
 func (s *Server) handleGetSet(w http.ResponseWriter, r *http.Request) {
@@ -5673,7 +5703,9 @@ func (s *Server) handleGetSet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(set)
+	if err := json.NewEncoder(w).Encode(set); err != nil {
+		log.Printf("encode set response: %v", err)
+	}
 }
 
 func (s *Server) handleUpdateSet(w http.ResponseWriter, r *http.Request) {
@@ -5701,7 +5733,9 @@ func (s *Server) handleUpdateSet(w http.ResponseWriter, r *http.Request) {
 
 	set.ID = id
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(set)
+	if err := json.NewEncoder(w).Encode(set); err != nil {
+		log.Printf("encode set response: %v", err)
+	}
 }
 
 func (s *Server) handleDeleteSet(w http.ResponseWriter, r *http.Request) {
@@ -5728,7 +5762,9 @@ func (s *Server) handleListCollection(w http.ResponseWriter, r *http.Request) {
 
 	items := s.getFilteredCollectionItems(status, condition, filterTags)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(items)
+	if err := json.NewEncoder(w).Encode(items); err != nil {
+		log.Printf("encode collection items response: %v", err)
+	}
 }
 
 func (s *Server) handleCreateCollectionItem(w http.ResponseWriter, r *http.Request) {
@@ -5764,7 +5800,9 @@ func (s *Server) handleCreateCollectionItem(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(item)
+	if err := json.NewEncoder(w).Encode(item); err != nil {
+		log.Printf("encode collection item response: %v", err)
+	}
 }
 
 func (s *Server) handleUpdateCollectionItem(w http.ResponseWriter, r *http.Request) {
@@ -5801,7 +5839,9 @@ func (s *Server) handleUpdateCollectionItem(w http.ResponseWriter, r *http.Reque
 
 	item.ID = id
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(item)
+	if err := json.NewEncoder(w).Encode(item); err != nil {
+		log.Printf("encode collection item response: %v", err)
+	}
 }
 
 func (s *Server) handleDeleteCollectionItem(w http.ResponseWriter, r *http.Request) {
@@ -5836,10 +5876,12 @@ func (s *Server) handleRefreshValuation(w http.ResponseWriter, r *http.Request) 
 	valuation, err := s.bricklinkPrice.GetInventoryAverage(r.Context(), set.SetCode, models.ConditionSealed)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
+		if encodeErr := json.NewEncoder(w).Encode(map[string]string{
 			"message": fmt.Sprintf("Failed to refresh valuation: %v", err),
 			"status":  "error",
-		})
+		}); encodeErr != nil {
+			log.Printf("encode valuation error response: %v", encodeErr)
+		}
 		return
 	}
 
@@ -5850,19 +5892,23 @@ func (s *Server) handleRefreshValuation(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
+		if encodeErr := json.NewEncoder(w).Encode(map[string]string{
 			"message": fmt.Sprintf("Valuation fetched but failed to save: %v", err),
 			"status":  "partial",
-		})
+		}); encodeErr != nil {
+			log.Printf("encode valuation partial response: %v", encodeErr)
+		}
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"message":   fmt.Sprintf("Valuation refreshed for set %d: %s %.2f", id, valuation.Currency, valuation.Value),
 		"status":    "success",
 		"valuation": valuation,
-	})
+	}); err != nil {
+		log.Printf("encode valuation success response: %v", err)
+	}
 }
 
 func (s *Server) handleFetchSetMetadata(w http.ResponseWriter, r *http.Request) {
@@ -5874,14 +5920,11 @@ func (s *Server) handleFetchSetMetadata(w http.ResponseWriter, r *http.Request) 
 
 	result, err := s.fetchSetMetadata(r.Context(), setNum)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	respondJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) fetchSetMetadata(ctx context.Context, setNumber string) (map[string]interface{}, error) {
@@ -5949,8 +5992,7 @@ func (s *Server) handleAPIListUsers(w http.ResponseWriter, r *http.Request) {
 	for i := range users {
 		users[i].PasswordHash = ""
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(users)
+	respondJSON(w, http.StatusOK, users)
 }
 
 func (s *Server) handleAPICreateUser(w http.ResponseWriter, r *http.Request) {
@@ -5961,39 +6003,29 @@ func (s *Server) handleAPICreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "invalid_json"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_json"})
 		return
 	}
 
 	username := strings.TrimSpace(req.Username)
 	role := normalizeRole(req.Role)
 	if username == "" || req.Password == "" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "missing_fields"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "missing_fields"})
 		return
 	}
 
 	hash, err := s.hashPassword(req.Password)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "hash_failed"})
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "hash_failed"})
 		return
 	}
 
 	if _, err := s.db.Conn().Exec("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", username, hash, role); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "create_failed"})
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "create_failed"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"status": "created"})
+	respondJSON(w, http.StatusCreated, map[string]string{"status": "created"})
 }
 
 func (s *Server) handleAPIUpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -6004,25 +6036,19 @@ func (s *Server) handleAPIUpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "invalid_json"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_json"})
 		return
 	}
 
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "invalid_id"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_id"})
 		return
 	}
 
 	user, err := s.getUserByID(id)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "not_found"})
+		respondJSON(w, http.StatusNotFound, map[string]string{"error": "not_found"})
 		return
 	}
 
@@ -6033,111 +6059,83 @@ func (s *Server) handleAPIUpdateUser(w http.ResponseWriter, r *http.Request) {
 	role := normalizeRole(req.Role)
 
 	if err := s.ensureCanChangeRole(id, user.Role, role); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 
 	if _, err := s.db.Conn().Exec("UPDATE users SET username = ?, role = ? WHERE id = ?", username, role, id); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "update_failed"})
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "update_failed"})
 		return
 	}
 
 	if req.Password != "" {
 		hash, err := s.hashPassword(req.Password)
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{"error": "hash_failed"})
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "hash_failed"})
 			return
 		}
 		if _, err := s.db.Conn().Exec("UPDATE users SET password_hash = ? WHERE id = ?", hash, id); err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{"error": "update_failed"})
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "update_failed"})
 			return
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
+	respondJSON(w, http.StatusOK, map[string]string{"status": "updated"})
 }
 
 func (s *Server) handleAPIDisableUser(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "invalid_id"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_id"})
 		return
 	}
 
 	if err := s.ensureCanRemoveUser(id); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 
 	if err := s.disableUser(id); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "disable_failed"})
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "disable_failed"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "disabled"})
+	respondJSON(w, http.StatusOK, map[string]string{"status": "disabled"})
 }
 
 func (s *Server) handleAPIEnableUser(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "invalid_id"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_id"})
 		return
 	}
 
 	if _, err := s.db.Conn().Exec("UPDATE users SET disabled_at = NULL WHERE id = ?", id); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "enable_failed"})
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "enable_failed"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "enabled"})
+	respondJSON(w, http.StatusOK, map[string]string{"status": "enabled"})
 }
 
 func (s *Server) handleAPIDeleteUser(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "invalid_id"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_id"})
 		return
 	}
 
 	if err := s.ensureCanRemoveUser(id); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 
 	if _, err := s.db.Conn().Exec("DELETE FROM users WHERE id = ?", id); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "delete_failed"})
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "delete_failed"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+	respondJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
 func (s *Server) Close() error {

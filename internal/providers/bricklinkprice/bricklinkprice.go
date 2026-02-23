@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -98,7 +99,7 @@ func (c *Client) GetInventoryAverage(ctx context.Context, setCode string, condit
 	summary := summarizeInventory(itemID, response)
 	if c.cache != nil {
 		if err := c.cache.Set(ctx, models.ProviderBrickLink, cacheKey, summary, c.ttl, nil); err != nil {
-			// Cache failure should not block valuation
+			log.Printf("bricklink price cache set failed: %v", err)
 		}
 	}
 

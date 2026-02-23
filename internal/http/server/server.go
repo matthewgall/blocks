@@ -4331,7 +4331,11 @@ func (s *Server) getSetsByBrandInsights() []dashboardInsight {
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing sets by brand rows: %v", err)
+		}
+	}()
 
 	var labels []string
 	var counts []int
@@ -4385,7 +4389,11 @@ func (s *Server) getAllBrands() []models.Brand {
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing brands rows: %v", err)
+		}
+	}()
 
 	var brands []models.Brand
 	for rows.Next() {
@@ -4410,7 +4418,11 @@ func (s *Server) getAllSets() []models.Set {
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing sets rows: %v", err)
+		}
+	}()
 
 	var sets []models.Set
 	for rows.Next() {

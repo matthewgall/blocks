@@ -1,0 +1,36 @@
+# Binaries
+/blocks
+/blocks.exe
+
+# Application Data
+data/*
+
+# Config
+config.yaml
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Testing
+coverage.out
+coverage.html
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# AI
+AGENTS.md
+PROMPT.md

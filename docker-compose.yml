@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  blocks:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - blocks_data:/data
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      - BLOCKS_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  blocks_data:
+    driver: local

@@ -1,0 +1,80 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="card">
+    <div class="page-header">
+        <h1>Import Results</h1>
+        <a href="/import" class="btn btn-secondary">Back to Import</a>
+    </div>
+
+    {{template "flash" .}}
+
+    {{with .Result}}
+    <div class="card card-section">
+        <div class="page-header">
+            <h2>Summary</h2>
+            <span class="text-muted">Complete</span>
+        </div>
+        <div class="grid">
+            <div class="stat-card">
+                <div class="stat-number">{{.CreatedSets}}</div>
+                <div class="stat-label">Sets created</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{.CreatedItems}}</div>
+                <div class="stat-label">Items created</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{.UpdatedItems}}</div>
+                <div class="stat-label">Items updated</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{.Skipped}}</div>
+                <div class="stat-label">Skipped</div>
+            </div>
+        </div>
+    </div>
+
+    {{if .Warnings}}
+    <div class="card card-section">
+        <div class="page-header">
+            <h2>Warnings</h2>
+            <span class="text-muted">Review</span>
+        </div>
+        <ul class="change-list">
+            {{range .Warnings}}
+            <li>{{.}}</li>
+            {{end}}
+        </ul>
+    </div>
+    {{end}}
+
+    <div class="card card-section">
+        <div class="page-header">
+            <h2>Applied Changes</h2>
+            <span class="text-muted">Detail</span>
+        </div>
+        <table class="table-compact">
+            <thead>
+                <tr>
+                    <th>Set</th>
+                    <th>Quantity</th>
+                    <th>Action</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Rows}}
+                <tr>
+                    <td>{{.SetNumber}}</td>
+                    <td>{{.Quantity}}</td>
+                    <td>{{.Action}}</td>
+                    <td>{{.Note}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{end}}
+</div>
+{{end}}

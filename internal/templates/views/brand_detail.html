@@ -1,0 +1,71 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="card">
+    <div class="page-header">
+        <div>
+            <h1>{{.Brand.Name}}</h1>
+            <p class="meta-label mt-0-25">{{.Brand.Kind}}</p>
+        </div>
+        <details class="actions-menu actions-mobile">
+            <summary class="btn btn-secondary">Actions</summary>
+            <div class="actions-menu-panel">
+                {{if ne .role "viewer"}}
+                <a href="/brands/{{.Brand.ID}}/edit" class="btn btn-secondary">Edit</a>
+                {{end}}
+            {{if eq .role "admin"}}
+            <form method="post" action="/brands/{{.Brand.ID}}/delete" class="form-inline" data-confirm-title="Delete brand" data-confirm-message="Delete this brand? This cannot be undone.">
+                {{template "csrf_input" .}}
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+            {{end}}
+            </div>
+        </details>
+    </div>
+
+    {{template "flash" .}}
+
+    {{if .Brand.Notes}}
+    <div class="card card-subsection">
+        <h3>Notes</h3>
+        <p>{{.Brand.Notes}}</p>
+    </div>
+    {{end}}
+
+    <div class="card card-section">
+        <div class="page-header">
+            <h2>Sets</h2>
+            {{if ne .role "viewer"}}
+            <a href="/sets/new" class="btn btn-success">Add Set</a>
+            {{end}}
+        </div>
+
+            {{if .Sets}}
+            <div class="grid">
+                {{range .Sets}}
+                <div class="card">
+                    <div class="actions-menu-top">
+                        <details class="actions-menu actions-mobile">
+                            <summary class="btn btn-secondary">Actions</summary>
+                            <div class="actions-menu-panel">
+                                <a href="/sets/{{.ID}}" class="btn btn-secondary">View</a>
+                                {{if ne $.role "viewer"}}
+                                <a href="/sets/{{.ID}}/edit" class="btn btn-secondary">Edit</a>
+                                {{end}}
+                            </div>
+                        </details>
+                    </div>
+                    <h3 class="card-title"><a href="/sets/{{.ID}}" class="card-link">{{.Name}}</a></h3>
+                    <p><strong>{{.SetCode}}</strong></p>
+                    {{if .Year}}<p>Year: {{.Year}}</p>{{end}}
+                    {{if .PieceCount}}<p>Pieces: {{.PieceCount}}</p>{{end}}
+                    {{if .Theme}}<p>Theme: {{value .Theme}}</p>{{end}}
+                </div>
+                {{end}}
+            </div>
+        {{else}}
+        <p>No sets for this brand yet.</p>
+        {{end}}
+    </div>
+</div>
+{{end}}

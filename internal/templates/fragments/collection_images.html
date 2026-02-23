@@ -1,0 +1,238 @@
+{{define "collection_images"}}
+<div class="collection-image-section mb-1">
+    <div class="collection-image-header">
+        <div>
+            <label for="images">Images</label>
+            <p class="text-muted mt-0-25">Upload and manage photos for this item.</p>
+        </div>
+        <div class="collection-image-count">
+            {{if .Item.Images}}{{len .Item.Images}} uploaded{{else}}No images{{end}}
+        </div>
+    </div>
+
+    {{if .Item.Images}}
+    <div class="collection-image-grid">
+        {{range .Item.Images}}
+        <div class="collection-image-card">
+            <img src="{{value .PublicURL}}" alt="Collection item image">
+            <button
+                type="submit"
+                class="btn btn-danger btn-small"
+                formnovalidate
+                formaction="/collection/{{.CollectionItemID}}/images/{{.ID}}/delete"
+                formmethod="post"
+                data-confirm-title="Delete image"
+                data-confirm-message="Delete this image? This cannot be undone."
+            >
+                Delete
+            </button>
+        </div>
+        {{end}}
+    </div>
+    {{end}}
+
+    <div class="collection-image-upload-card" data-upload-card>
+        {{if .Item.ID}}
+        <div class="collection-image-dropzone" data-dropzone>
+            <input type="file" id="images" name="images" accept="image/*" multiple form="{{.FormID}}" class="collection-image-input" data-upload-input>
+            <div class="collection-image-upload-text">
+                <strong>Drop images here</strong>
+                <span class="text-muted">Or click to browse. JPEG, PNG, or WebP.</span>
+            </div>
+            <button type="button" class="btn btn-secondary btn-small" data-browse>Browse files</button>
+        </div>
+        <div class="collection-upload-progress" aria-live="polite" hidden>
+            <div class="collection-upload-progress-bar" data-upload-bar></div>
+            <span class="collection-upload-progress-text" data-upload-text>Uploading...</span>
+        </div>
+        <p class="collection-upload-error text-muted" data-upload-error hidden></p>
+        {{else}}
+        <div class="collection-image-upload">
+            <input type="file" id="images" name="images" accept="image/*" multiple form="{{.FormID}}" class="collection-image-input" data-upload-input>
+            <div class="collection-image-upload-text">
+                <strong>Choose images</strong>
+                <span class="text-muted">Save the item to start uploads.</span>
+            </div>
+        </div>
+        {{end}}
+    </div>
+</div>
+
+<script>
+(function () {
+    var uploadCard = document.querySelector('[data-upload-card]');
+    if (!uploadCard) {
+        return;
+    }
+    var input = uploadCard.querySelector('[data-upload-input]');
+    var dropzone = uploadCard.querySelector('[data-dropzone]');
+    var browseButton = uploadCard.querySelector('[data-browse]');
+    if (!input || input.disabled) {
+        return;
+    }
+
+    var progressWrap = uploadCard.querySelector('[data-upload-bar]');
+    var progressText = uploadCard.querySelector('[data-upload-text]');
+    var progressContainer = uploadCard.querySelector('.collection-upload-progress');
+    var errorText = uploadCard.querySelector('[data-upload-error]');
+
+    function resetProgress() {
+        if (progressWrap) {
+            progressWrap.style.width = '0%';
+        }
+        if (progressText) {
+            progressText.textContent = 'Uploading...';
+        }
+        if (progressContainer) {
+            progressContainer.hidden = true;
+        }
+        if (errorText) {
+            errorText.hidden = true;
+            errorText.textContent = '';
+        }
+    }
+
+    function showError(message) {
+        if (errorText) {
+            errorText.textContent = message;
+            errorText.hidden = false;
+        }
+    }
+
+    function startUpload(files) {
+        if (!files || files.length === 0) {
+            return;
+        }
+        resetProgress();
+        if (progressContainer) {
+            progressContainer.hidden = false;
+        }
+
+        var queue = Array.prototype.slice.call(files);
+        var totalCount = queue.length;
+        var uploadedCount = 0;
+
+        function updateOverallProgress(currentPercent) {
+            if (!progressWrap) {
+                return;
+            }
+            var percent = Math.min(100, Math.round(((uploadedCount + currentPercent / 100) / totalCount) * 100));
+            progressWrap.style.width = percent + '%';
+            if (progressText) {
+                progressText.textContent = 'Uploading ' + percent + '%';
+            }
+        }
+
+        function uploadNext() {
+            if (queue.length === 0) {
+                window.location.reload();
+                return;
+            }
+            var file = queue.shift();
+            var formData = new FormData();
+            formData.append('images', file, file.name);
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/collection/{{.Item.ID}}/images', true);
+            xhr.setRequestHeader('Accept', 'application/json');
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            var csrfToken = window.getCSRFToken && window.getCSRFToken();
+            if (csrfToken) {
+                xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+            }
+            xhr.upload.addEventListener('progress', function (event) {
+                if (!event.lengthComputable) {
+                    return;
+                }
+                var percent = Math.round((event.loaded / event.total) * 100);
+                updateOverallProgress(percent);
+            });
+            xhr.addEventListener('load', function () {
+                if ((xhr.status >= 200 && xhr.status < 300) || (xhr.status === 0 && !xhr.responseText)) {
+                    uploadedCount += 1;
+                    updateOverallProgress(0);
+                    uploadNext();
+                    return;
+                }
+                if (xhr.status === 403) {
+                    fallbackSubmit();
+                    return;
+                }
+                var message = 'Upload failed.';
+                try {
+                    var payload = JSON.parse(xhr.responseText || '{}');
+                    if (payload.error) {
+                        message = payload.error;
+                    }
+                } catch (e) {
+                    message = 'Upload failed.';
+                }
+                if (xhr.status) {
+                    message = message + ' (status ' + xhr.status + ')';
+                }
+                showError(message);
+                if (xhr.responseText) {
+                    console.warn('Upload failed response:', xhr.status, xhr.responseText);
+                } else {
+                    console.warn('Upload failed response:', xhr.status, xhr.statusText);
+                }
+                if (progressContainer) {
+                    progressContainer.hidden = true;
+                }
+            });
+            xhr.addEventListener('error', function () {
+                showError('Upload failed. Please try again.');
+                if (progressContainer) {
+                    progressContainer.hidden = true;
+                }
+            });
+            xhr.send(formData);
+        }
+
+        uploadNext();
+    }
+
+    function fallbackSubmit() {
+        var form = document.getElementById('{{.FormID}}');
+        if (!form) {
+            showError('Upload blocked. Please try again.');
+            if (progressContainer) {
+                progressContainer.hidden = true;
+            }
+            return;
+        }
+        form.action = '/collection/{{.Item.ID}}/images';
+        form.method = 'post';
+        form.enctype = 'multipart/form-data';
+        form.submit();
+    }
+
+    input.addEventListener('change', function () {
+        startUpload(input.files);
+    });
+
+    if (browseButton) {
+        browseButton.addEventListener('click', function () {
+            input.click();
+        });
+    }
+
+    if (dropzone) {
+        dropzone.addEventListener('dragover', function (event) {
+            event.preventDefault();
+            dropzone.classList.add('is-dragging');
+        });
+        dropzone.addEventListener('dragleave', function () {
+            dropzone.classList.remove('is-dragging');
+        });
+        dropzone.addEventListener('drop', function (event) {
+            event.preventDefault();
+            dropzone.classList.remove('is-dragging');
+            if (event.dataTransfer && event.dataTransfer.files) {
+                startUpload(event.dataTransfer.files);
+            }
+        });
+    }
+})();
+</script>
+{{end}}

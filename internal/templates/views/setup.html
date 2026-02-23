@@ -1,0 +1,41 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="card">
+    <div class="page-header">
+        <h1>Welcome to Blocks</h1>
+    </div>
+    {{if .SetupComplete}}
+    <p class="text-muted mt-0-25">Setup is already complete. Please sign in.</p>
+    <div class="actions mt-1">
+        <a href="/login" class="btn btn-secondary">Go to Sign In</a>
+    </div>
+    {{else}}
+    <p class="text-muted mt-0-25">Create the first admin account to get started.</p>
+
+    {{template "flash" .}}
+
+    <form method="post" action="/setup" class="card card-section">
+        {{template "csrf_input" .}}
+        <p class="text-muted mt-0-25">Use at least 14 characters. Avoid your username or the app name.</p>
+        <div class="grid">
+            <div class="form-group">
+                <label for="username">Username *</label>
+                <input type="text" id="username" name="username" value="{{.Username}}" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password *</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password *</label>
+                <input type="password" id="confirm_password" name="confirm_password" required>
+            </div>
+        </div>
+        <div class="actions mt-1">
+            <button type="submit" class="btn btn-success">Create Admin Account</button>
+        </div>
+    </form>
+    {{end}}
+</div>
+{{end}}

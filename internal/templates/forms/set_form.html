@@ -1,0 +1,305 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="card">
+    <div class="page-header">
+        <h1>{{if .Set.ID}}Edit Set{{else}}Add New Set{{end}}</h1>
+        <div class="page-header-actions">
+            {{if .MetadataFetchEnabled}}
+            <button type="button" class="btn btn-success" data-fetch-provider="auto" data-fetch-input="set_code" aria-label="Fetch metadata">
+                <span class="btn-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" role="img" aria-hidden="true" focusable="false">
+                        <path fill="currentColor" d="M12 5a7 7 0 1 1-6.12 3.61.75.75 0 1 1 1.3-.75A5.5 5.5 0 1 0 12 6.5c-1.17 0-2.25.36-3.14.97h1.64a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1-.75-.75V4.5a.75.75 0 0 1 1.5 0v1.58A6.98 6.98 0 0 1 12 5z"/>
+                    </svg>
+                </span>
+                <span class="btn-text">Fetch Metadata</span>
+            </button>
+            {{end}}
+            <a href="/sets" class="btn btn-secondary">Cancel</a>
+        </div>
+    </div>
+    <p class="text-muted mt-0-25">Add details to keep your catalog accurate.</p>
+
+    {{template "flash" .}}
+    <div id="metadata-toast" class="flash" role="status" aria-live="polite" hidden></div>
+    <div id="metadata-changes" class="metadata-changes" hidden>
+        <p class="text-muted">Review changes:</p>
+        <ul class="change-list" id="metadata-change-list"></ul>
+    </div>
+
+    {{if eq .role "viewer"}}
+    <p>You do not have permission to edit sets.</p>
+    {{else}}
+    <form method="post" {{if .Set.ID}}action="/sets/{{.Set.ID}}/update"{{else}}action="/sets"{{end}}>
+        {{template "csrf_input" .}}
+        <div class="card card-section">
+            <div class="page-header">
+                <h2>Core Details</h2>
+                <span class="text-muted">Required</span>
+            </div>
+            <div class="grid">
+                <div class="form-group">
+                    <label for="name">Set Name *</label>
+                    <input type="text" id="name" name="name" value="{{.Set.Name}}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="set_code">Set Code *</label>
+                    <input type="text" id="set_code" name="set_code" value="{{.Set.SetCode}}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="brand_id">Brand *</label>
+                    <select id="brand_id" name="brand_id" required>
+                        <option value="">Select Brand</option>
+                        {{range .Brands}}
+                        <option value="{{.ID}}" {{if eq $.Set.BrandID .ID}}selected{{end}}>{{.Name}}</option>
+                        {{end}}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="theme">Theme</label>
+                    <input type="text" id="theme" name="theme" value="{{value .Set.Theme}}">
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-section">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h2>Inventory</h2>
+                </div>
+                <span class="text-muted">Optional</span>
+            </div>
+            <div class="grid">
+                <div class="form-group">
+                    <label for="year">Year</label>
+                    <input type="number" id="year" name="year" value="{{value .Set.Year}}" min="1900" max="{{.CurrentYear}}">
+                </div>
+
+                <div class="form-group">
+                    <label for="piece_count">Piece Count</label>
+                    <input type="number" id="piece_count" name="piece_count" value="{{value .Set.PieceCount}}" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label for="minifigs">Minifigs</label>
+                    <input type="number" id="minifigs" name="minifigs" value="{{value .Set.Minifigs}}" min="0">
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-section">
+            <div class="page-header">
+                <h2>Notes</h2>
+                <span class="text-muted">Optional</span>
+            </div>
+            <div class="grid">
+                <div class="form-group grid-span-full">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" rows="4">{{value .Set.Notes}}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-section">
+            <div class="page-header">
+                <h2>Tags</h2>
+                <span class="text-muted">Optional</span>
+            </div>
+            <div class="form-group">
+                <label for="tags">Tags</label>
+                {{template "tag_input" .}}
+                <p class="text-muted mt-0-25">Separate tags with commas.</p>
+            </div>
+        </div>
+
+        <div class="actions mt-2">
+            <button type="submit" class="btn btn-success">{{if .Set.ID}}Update Set{{else}}Create Set{{end}}</button>
+            <a href="/sets" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+    {{end}}
+</div>
+
+<script>
+(function () {
+    var toast = document.getElementById('metadata-toast');
+    var setCode = document.getElementById('set_code');
+    var nameField = document.getElementById('name');
+    var yearField = document.getElementById('year');
+    var pieceCountField = document.getElementById('piece_count');
+    var minifigsField = document.getElementById('minifigs');
+    var themeField = document.getElementById('theme');
+    var imageField = document.getElementById('image_url');
+
+    function setStatus(message, isError) {
+        if (!toast) {
+            return;
+        }
+        toast.textContent = message || '';
+        toast.classList.toggle('flash-error', Boolean(isError));
+        toast.classList.toggle('flash-success', !isError && Boolean(message));
+        toast.hidden = !message;
+        if (message) {
+            setTimeout(function () {
+                toast.hidden = true;
+            }, 4000);
+        }
+    }
+
+    function updateField(field, value) {
+        if (!field || value === undefined || value === null || value === '') {
+            return false;
+        }
+        var nextValue = String(value).trim();
+        if (nextValue === '') {
+            return false;
+        }
+        var currentValue = String(field.value || '').trim();
+        if (currentValue === nextValue) {
+            return false;
+        }
+        field.value = nextValue;
+        field.classList.add('field-updated');
+        setTimeout(function () {
+            field.classList.remove('field-updated');
+        }, 2500);
+        return {
+            from: currentValue,
+            to: nextValue
+        };
+    }
+
+    function applyPayload(payload) {
+        var changes = [];
+        var change;
+
+        change = updateField(setCode, payload.set_code);
+        if (change) {
+            changes.push({ label: 'Set code', from: change.from, to: change.to });
+        }
+        change = updateField(nameField, payload.name);
+        if (change) {
+            changes.push({ label: 'Name', from: change.from, to: change.to });
+        }
+        change = updateField(yearField, payload.year);
+        if (change) {
+            changes.push({ label: 'Year', from: change.from, to: change.to });
+        }
+        change = updateField(pieceCountField, payload.piece_count);
+        if (change) {
+            changes.push({ label: 'Piece count', from: change.from, to: change.to });
+        }
+        change = updateField(minifigsField, payload.minifigs);
+        if (change) {
+            changes.push({ label: 'Minifigs', from: change.from, to: change.to });
+        }
+        change = updateField(themeField, payload.theme);
+        if (change) {
+            changes.push({ label: 'Theme', from: change.from, to: change.to });
+        }
+        change = updateField(imageField, payload.image_url);
+        if (change) {
+            changes.push({ label: 'Image URL', from: change.from, to: change.to });
+        }
+
+        return changes;
+    }
+
+    function renderChanges(changes) {
+        var wrapper = document.getElementById('metadata-changes');
+        var list = document.getElementById('metadata-change-list');
+        if (!wrapper || !list) {
+            return;
+        }
+        list.innerHTML = '';
+        if (!changes || changes.length === 0) {
+            wrapper.hidden = true;
+            return;
+        }
+        changes.forEach(function (change) {
+            var item = document.createElement('li');
+            item.textContent = change.label + ': ' + (change.from || '—') + ' → ' + (change.to || '—');
+            list.appendChild(item);
+        });
+        wrapper.hidden = false;
+    }
+
+    function updateButtonVisibility() {
+        document.querySelectorAll('[data-fetch-provider]').forEach(function (button) {
+            var inputId = button.getAttribute('data-fetch-input');
+            if (!inputId) {
+                return;
+            }
+            var input = document.getElementById(inputId);
+            var hasValue = input && input.value.trim() !== '';
+            button.style.display = hasValue ? 'inline-flex' : 'none';
+        });
+    }
+
+    function handleFetch(button) {
+        var input = document.getElementById('set_code');
+        var identifier = input ? input.value.trim() : '';
+
+        if (!identifier) {
+            setStatus('Enter a set code first.', true);
+            return;
+        }
+
+        if (button) {
+            button.disabled = true;
+            button.classList.add('btn-loading');
+            button.setAttribute('aria-busy', 'true');
+        }
+        setStatus('Fetching metadata...', false);
+        fetch('/api/providers/sets/' + encodeURIComponent(identifier))
+            .then(function (response) {
+                if (!response.ok) {
+                    return response.json().then(function (body) {
+                        throw new Error(body.error || 'Unable to fetch set');
+                    });
+                }
+                return response.json();
+            })
+            .then(function (payload) {
+                var changes = applyPayload(payload);
+                if (changes.length > 0) {
+                    var plural = changes.length === 1 ? 'field' : 'fields';
+                    setStatus('Metadata updated ' + changes.length + ' ' + plural + '.', false);
+                    renderChanges(changes);
+                } else {
+                    setStatus('No new metadata found.', false);
+                    renderChanges([]);
+                }
+            })
+            .catch(function (error) {
+                setStatus(error.message || 'Unable to fetch set.', true);
+            })
+            .finally(function () {
+                if (button) {
+                    button.disabled = false;
+                    button.classList.remove('btn-loading');
+                    button.removeAttribute('aria-busy');
+                }
+            });
+    }
+
+    document.querySelectorAll('[data-fetch-provider]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            handleFetch(button);
+        });
+    });
+
+    ['input', 'change'].forEach(function (eventName) {
+        if (setCode) {
+            setCode.addEventListener(eventName, updateButtonVisibility);
+        }
+    });
+
+    updateButtonVisibility();
+})();
+</script>
+
+{{end}}

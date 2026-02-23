@@ -1,0 +1,45 @@
+{{define "set_image"}}
+<div class="set-image" data-loading="true">
+    <div class="image-spinner" aria-hidden="true"></div>
+    <img src="/media/sets/{{.Set.ID}}/image" alt="{{.Set.Name}}" class="{{.ImageClass}}" onload="window.handleSetImageLoad && window.handleSetImageLoad(this)" onerror="window.handleSetImageError && window.handleSetImageError(this)">
+    <div class="{{.PlaceholderClass}} image-placeholder">No Image</div>
+</div>
+
+<script>
+(function () {
+    if (window.setImageFallbackInitialized) {
+        return;
+    }
+    window.setImageFallbackInitialized = true;
+
+    window.handleSetImageLoad = function (image) {
+        var wrapper = image && image.parentElement ? image.parentElement : null;
+        if (wrapper) {
+            wrapper.removeAttribute('data-loading');
+        }
+    };
+
+    window.handleSetImageError = function (image) {
+        if (!image) {
+            return;
+        }
+        var wrapper = image.parentElement;
+        if (wrapper) {
+            wrapper.removeAttribute('data-loading');
+        }
+        var placeholder = image.parentElement ? image.parentElement.querySelector('.image-placeholder') : null;
+        if (placeholder) {
+            placeholder.classList.add('is-visible');
+        }
+        image.style.display = 'none';
+    };
+
+    var images = document.querySelectorAll('.set-image img');
+    images.forEach(function (img) {
+        if (img.complete && img.naturalWidth > 0) {
+            window.handleSetImageLoad(img);
+        }
+    });
+})();
+</script>
+{{end}}

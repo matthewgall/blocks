@@ -1,0 +1,142 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="card">
+    <h1>Profile</h1>
+    <p class="text-muted mt-0-25">Signed in as <strong>{{.Username}}</strong> ({{.Role}})</p>
+    <p class="text-muted mt-0-25">Update your password to keep your account secure.</p>
+
+    {{template "flash" .}}
+
+    <div class="card card-section">
+        <h2>Change Password</h2>
+        <form method="post" action="/profile/password">
+            {{template "csrf_input" .}}
+            <div class="form-group">
+                <label for="current_password">Current Password</label>
+                <input type="password" id="current_password" name="current_password" required>
+            </div>
+            <div class="form-group">
+                <label for="new_password">New Password</label>
+                <input type="password" id="new_password" name="new_password" required>
+            </div>
+            <div class="form-group">
+                <label for="confirm_password">Confirm New Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" required>
+            </div>
+            <div class="actions mt-1">
+                <button type="submit" class="btn btn-success">Update Password</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card card-section">
+        <h2>Disable Account</h2>
+        <p class="text-muted mt-0-5">This will sign you out and disable your account until an admin re-enables it.</p>
+        <form method="post" action="/profile/disable" class="mt-1" data-confirm-title="Disable account" data-confirm-message="Disable your account? You will be signed out until an admin re-enables it.">
+            {{template "csrf_input" .}}
+            <button type="submit" class="btn btn-danger">Disable Account</button>
+        </form>
+    </div>
+
+    <div class="card card-section">
+        <h2>API Tokens</h2>
+        <p class="text-muted mt-0-25">Create tokens for API access. Tokens are shown once, so copy them immediately.</p>
+
+        {{if .NewAPIToken}}
+        <div class="flash flash-success mt-1">
+            <p class="mt-0-25">New API token created{{if .NewAPITokenName}} for <strong>{{.NewAPITokenName}}</strong>{{end}} ({{.NewAPITokenScope}}).</p>
+            <pre class="mt-0-5">{{.NewAPIToken}}</pre>
+        </div>
+        {{end}}
+
+        <form method="post" action="/profile/api-tokens" class="grid mt-1 api-token-form">
+            {{template "csrf_input" .}}
+            <div class="form-group">
+                <label for="token_name">Token Name</label>
+                <input type="text" id="token_name" name="token_name" placeholder="e.g. Postman, CLI">
+            </div>
+            <div class="form-group">
+                <label for="token_scope">Scope</label>
+                <select id="token_scope" name="scope" required>
+                    <option value="read" selected>Read only</option>
+                    <option value="write">Read &amp; write</option>
+                    {{if eq .Role "admin"}}
+                    <option value="admin">Admin</option>
+                    {{end}}
+                </select>
+                <p class="text-muted mt-0-25">Tokens expire after 90 days.</p>
+            </div>
+            <div class="actions mt-1 form-actions form-actions-inline">
+                <button type="submit" class="btn btn-success">Create API Token</button>
+            </div>
+        </form>
+
+        {{if .APITokens}}
+        <div class="table-scroll mt-1">
+            <table class="table-compact">
+                <thead>
+                    <tr>
+                        <th>Token</th>
+                        <th>Access</th>
+                        <th>Created</th>
+                        <th>Last Used</th>
+                        <th>Expires</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .APITokens}}
+                    <tr>
+                        <td>
+                            <div>
+                                {{if .Name}}<strong>{{.Name}}</strong>{{else}}<span class="text-muted">Unnamed token</span>{{end}}
+                                {{if .RevokedAt}}
+                                    {{if .RevokedBySecret}}
+                                    <span class="badge badge-danger">Secret change</span>
+                                    {{else}}
+                                    <span class="badge badge-warning">Revoked</span>
+                                    {{end}}
+                                {{end}}
+                            </div>
+                            <div class="text-muted">ID {{.ID}}</div>
+                        </td>
+                        <td>
+                            {{if eq .Scope "read"}}
+                            <span class="badge badge-neutral">Read</span>
+                            {{else if eq .Scope "write"}}
+                            <span class="badge badge-success">Write</span>
+                            {{else}}
+                            <span class="badge badge-danger">Admin</span>
+                            {{end}}
+                        </td>
+                        <td>{{formatDate .CreatedAt}}</td>
+                        <td>{{if .LastUsedAt}}{{formatDate .LastUsedAt}}{{else}}<span class="text-muted">Never</span>{{end}}</td>
+                        <td>{{if .ExpiresAt}}{{formatDate .ExpiresAt}}{{else}}<span class="text-muted">-</span>{{end}}</td>
+                        <td class="table-actions-cell">
+                            {{if .RevokedAt}}
+                            <span class="text-muted">Revoked</span>
+                            {{else}}
+                            <form method="post" action="/profile/api-tokens/{{.ID}}/revoke" class="form-inline" data-confirm-title="Revoke token" data-confirm-message="Revoke this API token? This cannot be undone.">
+                                {{template "csrf_input" $}}
+                                <button type="submit" class="btn btn-danger">Revoke</button>
+                            </form>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{else}}
+        <div class="collection-gallery-empty api-token-empty mt-1">
+            <div class="collection-gallery-empty-illustration">API</div>
+            <div>
+                <strong>No API tokens yet</strong>
+                <p class="text-muted mt-0-25">Create a token to use the API from scripts and integrations.</p>
+            </div>
+        </div>
+        {{end}}
+    </div>
+</div>
+{{end}}

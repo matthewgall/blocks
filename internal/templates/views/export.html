@@ -1,0 +1,43 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="card">
+    <div class="page-header">
+        <h1>Export Collection</h1>
+        <a href="/" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+    <p class="text-muted mt-0-25">Download your collection in common formats.</p>
+
+    {{template "flash" .}}
+
+    <div class="card card-section">
+        <div class="page-header">
+            <h2>Rebrickable</h2>
+            <span class="text-muted">CSV</span>
+        </div>
+        <p class="text-muted">Exports set number and quantity for Rebrickable imports.</p>
+        <a href="/export/rebrickable" class="btn btn-success">Download Rebrickable CSV</a>
+    </div>
+
+    <div class="card card-section">
+        <div class="page-header">
+            <h2>Brickset</h2>
+            <span class="text-muted">CSV</span>
+        </div>
+        <p class="text-muted">Exports a Brickset-style CSV with key set details and quantities.</p>
+        <a href="/export/brickset" class="btn btn-success">Download Brickset CSV</a>
+    </div>
+
+    <div class="card card-section">
+        <div class="page-header">
+            <h2>Blocks</h2>
+            <span class="text-muted">CSV or SQLite</span>
+        </div>
+        <p class="text-muted">Exports your collection as a CSV or a raw SQLite database snapshot.</p>
+        <div class="stack">
+            <a href="/export/blocks" class="btn btn-success">Download Blocks CSV</a>
+            <a href="/export/blocks?format=sqlite" class="btn btn-secondary">Download SQLite DB</a>
+        </div>
+    </div>
+</div>
+{{end}}

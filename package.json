@@ -1,0 +1,9 @@
+{
+  "name": "blocks",
+  "private": true,
+  "scripts": {
+    "build:css": "bun build static/css/index.css --outfile static/styles.css",
+    "watch:css": "bun build static/css/index.css --outfile static/styles.css --watch",
+    "build": "bun run build:css"
+  }
+}

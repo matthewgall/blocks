@@ -1,0 +1,47 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="card">
+    <div class="page-header">
+        <h1>{{if .Brand.ID}}Edit Brand{{else}}Add New Brand{{end}}</h1>
+        <a href="/brands" class="btn btn-secondary">Cancel</a>
+    </div>
+    <p class="text-muted mt-0-25">Add brands to keep your catalog consistent.</p>
+
+    {{template "flash" .}}
+
+    {{if eq .role "viewer"}}
+    <p>You do not have permission to edit brands.</p>
+    {{else}}
+    <form method="post" {{if .Brand.ID}}action="/brands/{{.Brand.ID}}/update"{{else}}action="/brands"{{end}}>
+        {{template "csrf_input" .}}
+        <div class="grid">
+            <div class="form-group">
+                <label for="name">Brand Name *</label>
+                <input type="text" id="name" name="name" value="{{.Brand.Name}}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="kind">Brand Kind *</label>
+                <select id="kind" name="kind" required>
+                    <option value="">Select Kind</option>
+                    <option value="lego" {{if eq .Brand.Kind "lego"}}selected{{end}}>LEGO</option>
+                    <option value="clone" {{if eq .Brand.Kind "clone"}}selected{{end}}>Clone Brand</option>
+                    <option value="generic" {{if eq .Brand.Kind "generic"}}selected{{end}}>Generic</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group mt-1">
+            <label for="notes">Notes</label>
+            <textarea id="notes" name="notes" rows="4" placeholder="Any additional notes about this brand...">{{value .Brand.Notes}}</textarea>
+        </div>
+
+        <div class="actions mt-2">
+            <button type="submit" class="btn btn-success">{{if .Brand.ID}}Update Brand{{else}}Create Brand{{end}}</button>
+            <a href="/brands" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+    {{end}}
+</div>
+{{end}}

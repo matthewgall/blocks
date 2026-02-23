@@ -1,0 +1,64 @@
+# Example configuration for Blocks
+# Copy this file to config.yaml and adjust settings
+
+# Server settings (can be overridden by ENV/CLI flags)
+server:
+  address: ":8080"
+  read_timeout: 10s
+  write_timeout: 10s
+  idle_timeout: 60s
+
+# SQLite database location
+database:
+  path: "data/blocks.db"
+
+# Authentication and password hashing
+auth:
+  session_secret: "change-this-secret-in-production-use-a-long-random-string"
+  bcrypt_cost: 12
+
+# Upload directory and max size
+uploads:
+  method: "local" # local or s3
+  max_size: 10485760  # 10MB in bytes
+  local:
+    directory: "data/uploads"
+  s3:
+    bucket: ""
+    region: ""
+    endpoint: "" # Optional for S3-compatible services (e.g., https://<account>.r2.cloudflarestorage.com)
+    public_url: "" # Optional hostname/base URL for serving uploads
+    access_key_id: ""
+    secret_access_key: ""
+    session_token: ""
+    prefix: ""
+    path_style: false
+
+# Application metadata
+app:
+  name: "Blocks"
+  default_currency: "GBP"
+  embed_assets: true
+
+# External API providers (optional - leave empty if not using)
+providers:
+  brickset:
+    api_key: ""  # Get from https://brickset.com/api/v3.asmx/getSets
+    daily_limit: 100
+  rebrickable:
+    api_key: ""  # Get from https://rebrickable.com/api/v3
+
+# Cache TTLs for external providers
+cache:
+  # Optional dedicated cache directory (uses external_cache.db inside)
+  # directory: "data/cache"
+  provider: "sqlite" # sqlite or redis
+  ttl:
+    default: 24h
+    remote: 720h # 30 days
+  redis:
+    url: "" # Optional: redis://user:pass@host:6379/0 or rediss://host:6379/0
+    addr: "" # e.g. "localhost:6379"
+    password: ""
+    db: 0
+    tls: false

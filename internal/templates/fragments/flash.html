@@ -1,0 +1,8 @@
+{{define "flash"}}
+{{if .Message}}
+<div class="flash flash-success{{if .FlashClass}} {{.FlashClass}}{{end}}">{{.Message}}</div>
+{{end}}
+{{if .Error}}
+<div class="flash flash-error{{if .FlashClass}} {{.FlashClass}}{{end}}">{{.Error}}</div>
+{{end}}
+{{end}}

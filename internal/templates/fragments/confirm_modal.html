@@ -1,0 +1,128 @@
+{{define "confirm_modal"}}
+<div class="modal-backdrop" id="confirm-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+        <div class="modal-header">
+            <h3 id="confirm-title">Please confirm</h3>
+        </div>
+        <p id="confirm-message" class="text-muted"></p>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="confirm-cancel">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirm-accept">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var backdrop = document.getElementById('confirm-backdrop');
+    var title = document.getElementById('confirm-title');
+    var message = document.getElementById('confirm-message');
+    var cancelButton = document.getElementById('confirm-cancel');
+    var confirmButton = document.getElementById('confirm-accept');
+    var pendingForm = null;
+    var pendingSubmitter = null;
+    var bypassNext = false;
+
+    if (!backdrop || !title || !message || !cancelButton || !confirmButton) {
+        return;
+    }
+
+    function closeModal() {
+        backdrop.classList.remove('is-open');
+        backdrop.setAttribute('aria-hidden', 'true');
+        pendingForm = null;
+        pendingSubmitter = null;
+    }
+
+    function openModal(form, submitter) {
+        var confirmTitle = 'Please confirm';
+        var confirmMessage = 'Are you sure you want to continue?';
+        if (submitter && submitter.getAttribute) {
+            confirmTitle = submitter.getAttribute('data-confirm-title') || confirmTitle;
+            confirmMessage = submitter.getAttribute('data-confirm-message') || confirmMessage;
+        }
+        if (form && form.getAttribute) {
+            confirmTitle = form.getAttribute('data-confirm-title') || confirmTitle;
+            confirmMessage = form.getAttribute('data-confirm-message') || confirmMessage;
+        }
+        title.textContent = confirmTitle;
+        message.textContent = confirmMessage;
+        pendingForm = form;
+        pendingSubmitter = submitter || null;
+        backdrop.classList.add('is-open');
+        backdrop.setAttribute('aria-hidden', 'false');
+        confirmButton.focus();
+    }
+
+    document.addEventListener('submit', function (event) {
+        var form = event.target;
+        if (!form || !form.getAttribute) {
+            return;
+        }
+        if (bypassNext) {
+            bypassNext = false;
+            return;
+        }
+        var submitter = event.submitter || null;
+        var confirmMessage = '';
+        if (submitter && submitter.getAttribute) {
+            confirmMessage = submitter.getAttribute('data-confirm-message') || '';
+        }
+        if (!confirmMessage) {
+            confirmMessage = form.getAttribute('data-confirm-message') || '';
+        }
+        if (!confirmMessage) {
+            return;
+        }
+        event.preventDefault();
+        openModal(form, submitter);
+    });
+
+    confirmButton.addEventListener('click', function () {
+        if (pendingForm) {
+            bypassNext = true;
+            if (pendingSubmitter && pendingForm.requestSubmit) {
+                pendingForm.requestSubmit(pendingSubmitter);
+            } else if (pendingSubmitter && pendingSubmitter.getAttribute) {
+                var originalAction = pendingForm.getAttribute('action');
+                var originalMethod = pendingForm.getAttribute('method');
+                var submitAction = pendingSubmitter.getAttribute('formaction');
+                var submitMethod = pendingSubmitter.getAttribute('formmethod');
+                if (submitAction) {
+                    pendingForm.setAttribute('action', submitAction);
+                }
+                if (submitMethod) {
+                    pendingForm.setAttribute('method', submitMethod);
+                }
+                pendingForm.submit();
+                if (submitAction) {
+                    pendingForm.setAttribute('action', originalAction || '');
+                }
+                if (submitMethod) {
+                    pendingForm.setAttribute('method', originalMethod || '');
+                }
+            } else {
+                pendingForm.submit();
+            }
+        }
+        closeModal();
+    });
+
+    cancelButton.addEventListener('click', function () {
+        closeModal();
+    });
+
+    backdrop.addEventListener('click', function (event) {
+        if (event.target === backdrop) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeModal();
+        }
+    });
+})();
+</script>
+{{end}}

@@ -1,0 +1,114 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="card">
+    <div class="page-header">
+        <h1>{{if .User}}Edit User{{else}}Add User{{end}}</h1>
+        <a href="/admin/users" class="btn btn-secondary">Cancel</a>
+    </div>
+    <p class="text-muted mt-0-25">Manage access for your team here.</p>
+
+    {{template "flash" .}}
+
+    <form method="post" {{if .User}}action="/admin/users/{{.User.ID}}/update"{{else}}action="/admin/users"{{end}}>
+        {{template "csrf_input" .}}
+        <div class="grid">
+            <div class="form-group">
+                <label for="username">Username *</label>
+                <input type="text" id="username" name="username" value="{{.User.Username}}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="role">Role *</label>
+                <select id="role" name="role" required>
+                    <option value="admin" {{if eq .User.Role "admin"}}selected{{end}}>Admin</option>
+                    <option value="editor" {{if eq .User.Role "editor"}}selected{{end}}>Editor</option>
+                    <option value="viewer" {{if eq .User.Role "viewer"}}selected{{end}}>Viewer</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid mt-1">
+            <div class="form-group">
+                <label for="password">{{if .User}}New Password (optional){{else}}Password *{{end}}</label>
+                <input type="password" id="password" name="password" {{if .User}}{{else}}required{{end}}>
+            </div>
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password {{if .User}}(optional){{end}}</label>
+                <input type="password" id="confirm_password" name="confirm_password" {{if .User}}{{else}}required{{end}}>
+            </div>
+        </div>
+
+        <div class="actions mt-2">
+            <button type="submit" class="btn btn-success">{{if .User}}Update User{{else}}Create User{{end}}</button>
+            <a href="/admin/users" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+
+    {{if .User}}
+    <div class="card card-section mt-1">
+        <h2>API Tokens</h2>
+        <p class="text-muted mt-0-25">Manage API tokens for this user.</p>
+        {{if .APITokens}}
+        <div class="table-scroll mt-1">
+            <table class="table-compact">
+                <thead>
+                    <tr>
+                        <th>Token</th>
+                        <th>Access</th>
+                        <th>Created</th>
+                        <th>Last Used</th>
+                        <th>Expires</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .APITokens}}
+                    <tr>
+                        <td>
+                            <div>
+                                {{if .Name}}<strong>{{.Name}}</strong>{{else}}<span class="text-muted">Unnamed token</span>{{end}}
+                                {{if .RevokedAt}}
+                                    {{if .RevokedBySecret}}
+                                    <span class="badge badge-danger">Secret change</span>
+                                    {{else}}
+                                    <span class="badge badge-warning">Revoked</span>
+                                    {{end}}
+                                {{end}}
+                            </div>
+                            <div class="text-muted">ID {{.ID}}</div>
+                        </td>
+                        <td>
+                            {{if eq .Scope "read"}}
+                            <span class="badge badge-neutral">Read</span>
+                            {{else if eq .Scope "write"}}
+                            <span class="badge badge-success">Write</span>
+                            {{else}}
+                            <span class="badge badge-danger">Admin</span>
+                            {{end}}
+                        </td>
+                        <td>{{formatDate .CreatedAt}}</td>
+                        <td>{{if .LastUsedAt}}{{formatDate .LastUsedAt}}{{else}}<span class="text-muted">Never</span>{{end}}</td>
+                        <td>{{if .ExpiresAt}}{{formatDate .ExpiresAt}}{{else}}<span class="text-muted">-</span>{{end}}</td>
+                        <td class="table-actions-cell">
+                            {{if .RevokedAt}}
+                            <span class="text-muted">Revoked</span>
+                            {{else}}
+                            <form method="post" action="/admin/users/{{$.User.ID}}/api-tokens/{{.ID}}/revoke" class="form-inline" data-confirm-title="Revoke token" data-confirm-message="Revoke this API token? This cannot be undone.">
+                                {{template "csrf_input" $}}
+                                <button type="submit" class="btn btn-danger">Revoke</button>
+                            </form>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{else}}
+        <p class="text-muted mt-1">No API tokens for this user.</p>
+        {{end}}
+    </div>
+    {{end}}
+</div>
+{{end}}

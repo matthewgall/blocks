@@ -1,0 +1,363 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="card">
+    <div class="page-header">
+        <h1>{{.Set.Name}}</h1>
+        <div class="actions actions-desktop">
+            {{if ne .role "viewer"}}
+            <a href="/sets/{{.Set.ID}}/edit" class="btn btn-secondary">Edit</a>
+            <a href="/collection/new?set_id={{.Set.ID}}" class="btn btn-success">Add to Collection</a>
+            {{end}}
+            {{if eq .role "admin"}}
+            <form method="post" action="/sets/{{.Set.ID}}/delete" class="form-inline" data-confirm-title="Delete set" data-confirm-message="Delete this set? This cannot be undone.">
+                {{template "csrf_input" .}}
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+            {{end}}
+        </div>
+        <details class="actions-menu actions-mobile">
+            <summary class="btn btn-secondary">Actions</summary>
+            <div class="actions-menu-panel">
+                {{if ne .role "viewer"}}
+                <a href="/sets/{{.Set.ID}}/edit" class="btn btn-secondary">Edit</a>
+                <a href="/collection/new?set_id={{.Set.ID}}" class="btn btn-success">Add to Collection</a>
+                {{end}}
+                {{if eq .role "admin"}}
+                <form method="post" action="/sets/{{.Set.ID}}/delete" class="form-inline" data-confirm-title="Delete set" data-confirm-message="Delete this set? This cannot be undone.">
+                    {{template "csrf_input" .}}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+                {{end}}
+            </div>
+        </details>
+    </div>
+
+    {{template "flash" .}}
+
+    <div class="set-detail">
+        <div class="set-detail-main">
+            <div class="set-hero">
+                <div class="set-hero-media">
+                    {{template "set_image" (dict "Set" .Set "ImageClass" "detail-image" "PlaceholderClass" "detail-placeholder")}}
+                </div>
+                <div class="set-hero-info">
+                    <div class="set-meta-grid">
+                        <div class="set-meta-item">
+                            <span class="meta-label">Set Code</span>
+                            <span>{{.Set.SetCode}}</span>
+                        </div>
+                        <div class="set-meta-item">
+                            <span class="meta-label">Brand</span>
+                            <span><a href="/brands/{{.Set.BrandID}}">{{.Set.Brand.Name}}</a></span>
+                        </div>
+                        {{if .Set.Year}}
+                        <div class="set-meta-item">
+                            <span class="meta-label">Year</span>
+                            <span>{{.Set.Year}}</span>
+                        </div>
+                        {{end}}
+                        {{if .Set.PieceCount}}
+                        <div class="set-meta-item">
+                            <span class="meta-label">Pieces</span>
+                            <span>{{.Set.PieceCount}}</span>
+                        </div>
+                        {{end}}
+                        {{if .Set.Minifigs}}
+                        <div class="set-meta-item">
+                            <span class="meta-label">Minifigs</span>
+                            <span>{{.Set.Minifigs}}</span>
+                        </div>
+                        {{end}}
+                        {{if .Set.Theme}}
+                        <div class="set-meta-item">
+                            <span class="meta-label">Theme</span>
+                            <span>{{value .Set.Theme}}</span>
+                        </div>
+                        {{end}}
+                        {{if and .Set.Brand (eq .Set.Brand.Kind "lego") .Set.SetCode}}
+                        <div class="set-meta-item">
+                            <span class="meta-label">Brickset</span>
+                            <span><a href="https://brickset.com/sets/{{setCodeWithSuffix .Set.SetCode}}" target="_blank" rel="noopener">{{setCodeWithSuffix .Set.SetCode}}</a></span>
+                        </div>
+                        <div class="set-meta-item">
+                            <span class="meta-label">Rebrickable</span>
+                            <span><a href="https://rebrickable.com/sets/{{setCodeWithSuffix .Set.SetCode}}" target="_blank" rel="noopener">{{setCodeWithSuffix .Set.SetCode}}</a></span>
+                        </div>
+                        {{end}}
+                    </div>
+
+                    {{if .Set.Tags}}
+                    <div class="tag-list">
+                        {{range .Set.Tags}}
+                        <span class="badge badge-neutral">{{.}}</span>
+                        {{end}}
+                    </div>
+                    {{end}}
+
+                    {{if .Set.Notes}}
+                    <div class="card card-subsection">
+                        <h3>Notes</h3>
+                        <p>{{value .Set.Notes}}</p>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+
+        <div class="set-detail-side">
+            {{if .ValuationEnabled}}
+            {{if .Valuations}}
+            <div class="card">
+                <h3>Valuations</h3>
+                <div class="table-scroll">
+                    <table class="table-compact">
+                        <thead>
+                            <tr>
+                                <th>Provider</th>
+                                <th>Value</th>
+                                <th>Condition</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range .Valuations}}
+                            <tr>
+                                <td>{{.Provider}}</td>
+                                <td>{{formatMoney .Currency .Value}}</td>
+                                <td>{{value .Condition}}</td>
+                                <td>{{formatDate .AsOfDate}}</td>
+                                <td>
+                                    <button class="btn btn-secondary" onclick="refreshValuation({{.SetID}}, '{{.Provider}}')">Refresh</button>
+                                </td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+                <button class="btn btn-secondary" onclick="refreshValuation({{.Set.ID}}, 'inventory')">Refresh Valuation</button>
+            </div>
+            {{else}}
+            <div class="card">
+                <h3>Valuations</h3>
+                <p class="text-muted">No valuations yet. Refresh to fetch pricing data.</p>
+                <button class="btn btn-secondary mt-1" onclick="refreshValuation({{.Set.ID}}, 'inventory')">Refresh Valuation</button>
+            </div>
+            {{end}}
+            {{end}}
+
+            <div class="card">
+                <div class="collection-gallery-header">
+                    <div>
+                        <h3>Collection Gallery</h3>
+                        <p class="text-muted mt-0-25">Photos of your collection items for this set.</p>
+                    </div>
+                </div>
+                {{if .CollectionImages}}
+                <div class="collection-gallery-grid">
+                    {{range .CollectionImages}}
+                    <button type="button" class="collection-gallery-card" data-gallery-src="{{value .Image.PublicURL}}" aria-label="View collection image">
+                        <img src="{{value .Image.PublicURL}}" alt="Collection item image">
+                    </button>
+                    {{end}}
+                </div>
+                {{else}}
+                <div class="collection-gallery-empty">
+                    <div class="collection-gallery-empty-illustration" aria-hidden="true">IMG</div>
+                    <div>
+                        <strong>No photos yet</strong>
+                        <p class="text-muted mt-0-25">Add photos on each collection item to build your gallery.</p>
+                    </div>
+                </div>
+                {{end}}
+            </div>
+
+            {{if .CollectionItems}}
+            <div class="card">
+                <h3>Collection Items</h3>
+                <div class="collection-cards">
+                    {{range .CollectionItems}}
+                    <div class="collection-card">
+                        <div class="collection-card-header">
+                            <div>
+                                <span class="meta-label">Quantity</span>
+                                <strong>{{.Quantity}}</strong>
+                            </div>
+                            <div class="collection-card-meta-right">
+                                <div class="collection-card-badges">
+                                    <span class="badge badge-{{.Condition}}">{{.Condition}}</span>
+                                    <span class="badge badge-{{.Status}}">{{.Status}}</span>
+                                </div>
+                                <details class="actions-menu actions-mobile">
+                                    <summary class="btn btn-secondary">Actions</summary>
+                                    <div class="actions-menu-panel">
+                                        <a href="/collection/{{.ID}}/edit" class="btn btn-secondary">Edit</a>
+                                    </div>
+                                </details>
+                            </div>
+                        </div>
+                        <div class="collection-card-body">
+                            {{if .Location}}
+                            <div>
+                                <span class="meta-label">Location</span>
+                                <div>{{value .Location}}</div>
+                            </div>
+                            {{end}}
+                            {{if .Tags}}
+                            <div>
+                                <span class="meta-label">Tags</span>
+                                <div class="tag-list">
+                                    {{range .Tags}}
+                                    <span class="badge badge-neutral">{{.}}</span>
+                                    {{end}}
+                                </div>
+                            </div>
+                            {{end}}
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+            {{else}}
+            <div class="card">
+                <h3>Collection Items</h3>
+                <p class="text-muted">No items for this set yet. Add one to track it here.</p>
+                {{if ne .role "viewer"}}
+                <a href="/collection/new?set_id={{.Set.ID}}" class="btn btn-success mt-1">Add to Collection</a>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+    </div>
+</div>
+
+<div class="lightbox" id="collection-lightbox" aria-hidden="true" role="dialog" aria-label="Collection image preview">
+    <button type="button" class="lightbox-backdrop" data-lightbox-close aria-label="Close"></button>
+    <div class="lightbox-content" role="document">
+        <button type="button" class="lightbox-close" data-lightbox-close aria-label="Close">Close</button>
+        <div class="lightbox-nav">
+            <button type="button" class="lightbox-nav-btn" data-lightbox-prev aria-label="Previous image">Prev</button>
+            <button type="button" class="lightbox-nav-btn" data-lightbox-next aria-label="Next image">Next</button>
+        </div>
+        <img src="" alt="Collection image" id="collection-lightbox-image">
+    </div>
+</div>
+
+<script>
+function refreshValuation(setId, provider) {
+    var headers = {
+        'Content-Type': 'application/json',
+    };
+    var csrfToken = window.getCSRFToken && window.getCSRFToken();
+    if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+    }
+    fetch(`/api/valuations/sets/${setId}/refresh`, {
+        method: 'POST',
+        headers: headers
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert('Valuation refresh requested: ' + data.message);
+        location.reload();
+    })
+    .catch(error => {
+        alert('Error refreshing valuation: ' + error);
+    });
+}
+
+(function () {
+    var lightbox = document.getElementById('collection-lightbox');
+    if (!lightbox) {
+        return;
+    }
+    var image = document.getElementById('collection-lightbox-image');
+    var openButtons = Array.prototype.slice.call(document.querySelectorAll('[data-gallery-src]'));
+    var sources = openButtons.map(function (button) {
+        return button.getAttribute('data-gallery-src');
+    });
+    var currentIndex = -1;
+
+    function openLightbox(src) {
+        if (!src) {
+            return;
+        }
+        currentIndex = sources.indexOf(src);
+        image.src = src;
+        lightbox.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('lightbox-open');
+    }
+
+    function closeLightbox() {
+        lightbox.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('lightbox-open');
+        image.src = '';
+        currentIndex = -1;
+    }
+
+    function showImageAt(index) {
+        if (!sources.length) {
+            return;
+        }
+        var nextIndex = index;
+        if (nextIndex < 0) {
+            nextIndex = sources.length - 1;
+        }
+        if (nextIndex >= sources.length) {
+            nextIndex = 0;
+        }
+        currentIndex = nextIndex;
+        image.src = sources[currentIndex];
+    }
+
+    openButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            openLightbox(button.getAttribute('data-gallery-src'));
+        });
+    });
+
+    var closeButtons = lightbox.querySelectorAll('[data-lightbox-close]');
+    closeButtons.forEach(function (button) {
+        button.addEventListener('click', closeLightbox);
+    });
+
+    var prevButton = lightbox.querySelector('[data-lightbox-prev]');
+    var nextButton = lightbox.querySelector('[data-lightbox-next]');
+    if (sources.length <= 1) {
+        if (prevButton) {
+            prevButton.style.display = 'none';
+        }
+        if (nextButton) {
+            nextButton.style.display = 'none';
+        }
+    }
+    if (prevButton) {
+        prevButton.addEventListener('click', function () {
+            showImageAt(currentIndex - 1);
+        });
+    }
+    if (nextButton) {
+        nextButton.addEventListener('click', function () {
+            showImageAt(currentIndex + 1);
+        });
+    }
+
+    document.addEventListener('keydown', function (event) {
+        if (lightbox.getAttribute('aria-hidden') === 'true') {
+            return;
+        }
+        if (event.key === 'Escape') {
+            closeLightbox();
+        }
+        if (event.key === 'ArrowLeft') {
+            showImageAt(currentIndex - 1);
+        }
+        if (event.key === 'ArrowRight') {
+            showImageAt(currentIndex + 1);
+        }
+    });
+
+})();
+</script>
+{{end}}

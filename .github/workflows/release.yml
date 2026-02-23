@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: 1.22.x
+        
+    - name: Build binaries
+      run: |
+        mkdir -p dist
+        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/blocks-linux-amd64 ./cmd/blocks
+        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/blocks-darwin-amd64 ./cmd/blocks
+        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/blocks-windows-amd64.exe ./cmd/blocks
+        
+    - name: Create checksums
+      run: |
+        cd dist
+        sha256sum * > checksums.txt
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/*
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

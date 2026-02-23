@@ -1,0 +1,104 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="card">
+    <div class="page-header">
+        <h1>Import Preview</h1>
+        <a href="/import" class="btn btn-secondary">Back</a>
+    </div>
+    <p class="text-muted mt-0-25">Review the changes before applying the import.</p>
+
+    {{template "flash" .}}
+
+    {{with .Preview}}
+    <div class="card card-section">
+        <div class="page-header">
+            <h2>Summary</h2>
+            <span class="text-muted">{{.TotalRows}} rows</span>
+        </div>
+        <div class="grid">
+            <div class="stat-card">
+                <div class="stat-number">{{.CreatedSets}}</div>
+                <div class="stat-label">Sets to create</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{.CreatedItems}}</div>
+                <div class="stat-label">Items to add</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{.UpdatedItems}}</div>
+                <div class="stat-label">Items to update</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{.SkippedItems}}</div>
+                <div class="stat-label">Skipped</div>
+            </div>
+        </div>
+    </div>
+
+    {{if .Warnings}}
+    <div class="card card-section">
+        <div class="page-header">
+            <h2>Warnings</h2>
+            <span class="text-muted">Review</span>
+        </div>
+        <ul class="change-list">
+            {{range .Warnings}}
+            <li>{{.}}</li>
+            {{end}}
+        </ul>
+    </div>
+    {{end}}
+
+    <div class="card card-section">
+        <div class="page-header">
+            <h2>Planned Changes</h2>
+            <span class="text-muted">Preview</span>
+        </div>
+        <table class="table-compact">
+            <thead>
+                <tr>
+                    <th>Set</th>
+                    <th>CSV Qty</th>
+                    <th>Existing</th>
+                    <th>Action</th>
+                    <th>Note</th>
+                    <th>Override</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Rows}}
+                <tr>
+                    <td>{{.SetNumber}}</td>
+                    <td>{{.Quantity}}</td>
+                    <td>{{if .ExistingQty}}{{.ExistingQty}}{{else}}—{{end}}</td>
+                    <td>{{.Action}}</td>
+                    <td>{{.Note}}</td>
+                    <td>
+                        <div class="import-override">
+                            <select name="action_{{.SetNumber}}">
+                                <option value="apply" {{if ne .Action "skip"}}selected{{end}}>Apply</option>
+                                <option value="skip" {{if eq .Action "skip"}}selected{{end}}>Skip</option>
+                            </select>
+                            <input type="number" name="override_{{.SetNumber}}" min="0" placeholder="Qty">
+                        </div>
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{end}}
+
+    <form method="post" action="/import/confirm">
+        {{template "csrf_input" .}}
+        <input type="hidden" name="token" value="{{.ImportToken}}">
+        <input type="hidden" name="condition" value="{{.Condition}}">
+        <input type="hidden" name="status" value="{{.Status}}">
+        <div class="actions mt-2">
+            <button type="submit" class="btn btn-success">Apply Import</button>
+            <a href="/import" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{{end}}

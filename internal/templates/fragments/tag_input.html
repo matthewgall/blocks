@@ -1,0 +1,165 @@
+{{define "tag_input"}}
+<div class="tag-input" id="tags-input-group">
+    <div class="tag-pill-list" id="tags-pills"></div>
+    <input type="text" id="tags-input" placeholder="{{if .TagPlaceholder}}{{.TagPlaceholder}}{{else}}e.g., display, sealed, gift{{end}}" autocomplete="off">
+    <input type="hidden" id="tags-hidden" name="tags" value="{{.TagInput}}">
+    <div class="tag-suggestions" id="tags-suggestions"></div>
+</div>
+
+<script>
+(function () {
+    var inputGroup = document.getElementById('tags-input-group');
+    var tagInput = document.getElementById('tags-input');
+    var tagHidden = document.getElementById('tags-hidden');
+    var tagPills = document.getElementById('tags-pills');
+    var tagSuggestions = document.getElementById('tags-suggestions');
+    if (!inputGroup || !tagInput || !tagHidden || !tagPills || !tagSuggestions) {
+        return;
+    }
+
+    var debounceTimer;
+    var tags = [];
+    var suppressBlur = false;
+
+    function normalize(value) {
+        return value.trim().toLowerCase();
+    }
+
+    function syncHidden() {
+        tagHidden.value = tags.join(', ');
+    }
+
+    function renderPills() {
+        tagPills.innerHTML = '';
+        tags.forEach(function (tag) {
+            var pill = document.createElement('span');
+            pill.className = 'tag-pill';
+            pill.textContent = tag;
+
+            var remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'tag-pill-remove';
+            remove.setAttribute('aria-label', 'Remove tag');
+            remove.textContent = '×';
+            remove.addEventListener('click', function () {
+                tags = tags.filter(function (t) { return t !== tag; });
+                renderPills();
+                syncHidden();
+            });
+
+            pill.appendChild(remove);
+            tagPills.appendChild(pill);
+        });
+    }
+
+    function addTag(raw) {
+        var normalized = normalize(raw || '');
+        if (!normalized || tags.indexOf(normalized) !== -1) {
+            return;
+        }
+        tags.push(normalized);
+        renderPills();
+        syncHidden();
+    }
+
+    function addFromInput(value) {
+        var parts = value.split(',');
+        parts.forEach(function (part) {
+            addTag(part);
+        });
+        tagInput.value = '';
+    }
+
+    function showSuggestions(list) {
+        tagSuggestions.innerHTML = '';
+        if (!list.length) {
+            tagSuggestions.classList.remove('is-open');
+            return;
+        }
+        list.forEach(function (tag) {
+            if (tags.indexOf(tag) !== -1) {
+                return;
+            }
+            var item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'tag-suggestion';
+            item.textContent = tag;
+            item.addEventListener('mousedown', function (event) {
+                suppressBlur = true;
+                event.preventDefault();
+            });
+            item.addEventListener('click', function () {
+                addTag(tag);
+                tagInput.value = '';
+                tagInput.focus();
+                showSuggestions([]);
+                suppressBlur = false;
+            });
+            tagSuggestions.appendChild(item);
+        });
+        if (tagSuggestions.children.length) {
+            tagSuggestions.classList.add('is-open');
+        } else {
+            tagSuggestions.classList.remove('is-open');
+        }
+    }
+
+    function fetchSuggestions(value) {
+        var normalized = normalize(value);
+        if (!normalized) {
+            showSuggestions([]);
+            return;
+        }
+        fetch('/api/tags?q=' + encodeURIComponent(normalized))
+            .then(function (response) {
+                if (!response.ok) {
+                    return [];
+                }
+                return response.json();
+            })
+            .then(function (list) {
+                showSuggestions(list || []);
+            })
+            .catch(function () {
+                showSuggestions([]);
+            });
+    }
+
+    tagInput.addEventListener('input', function () {
+        window.clearTimeout(debounceTimer);
+        debounceTimer = window.setTimeout(function () {
+            fetchSuggestions(tagInput.value || '');
+        }, 150);
+    });
+
+    tagInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ',' || event.key === ' ') {
+            if (tagInput.value.trim() !== '') {
+                event.preventDefault();
+                addFromInput(tagInput.value);
+                showSuggestions([]);
+            }
+        } else if (event.key === 'Backspace' && tagInput.value === '' && tags.length) {
+            tags.pop();
+            renderPills();
+            syncHidden();
+        }
+    });
+
+    tagInput.addEventListener('blur', function () {
+        if (suppressBlur) {
+            suppressBlur = false;
+            return;
+        }
+        if (tagInput.value.trim() !== '') {
+            addFromInput(tagInput.value);
+        }
+        showSuggestions([]);
+    });
+
+    tagHidden.value.split(',').forEach(function (tag) {
+        addTag(tag);
+    });
+})();
+</script>
+{{end}}

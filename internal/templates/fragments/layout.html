@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{.CSRFToken}}">
+    <title>{{.Title}} - Blocks</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script>
+    window.getCSRFToken = function () {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    };
+    </script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav class="site-nav">
+                <div class="nav-brand">
+                    <h1>Blocks</h1>
+                    <label for="nav-toggle" class="nav-toggle-label" aria-label="Toggle navigation">
+                        <span class="nav-toggle-icon"></span>
+                        <span class="nav-toggle-text">Menu</span>
+                    </label>
+                </div>
+                <input type="checkbox" id="nav-toggle" class="nav-toggle">
+                <ul class="nav-links">
+                    {{if .isLoggedIn}}
+                    <li><a href="/">Dashboard</a></li>
+                    <li><a href="/sets">Sets</a></li>
+                    <li><a href="/brands">Brands</a></li>
+                    <li><a href="/collection">Collection</a></li>
+                    <li><a href="/profile">Profile</a></li>
+                    {{if eq .role "admin"}}
+                    <li><a href="/admin/users">Users</a></li>
+                    {{end}}
+                    <li>
+                        <span class="badge badge-neutral badge-capitalize">{{.role}}</span>
+                    </li>
+                    <li>
+                        <form method="post" action="/logout" class="form-inline">
+                            {{template "csrf_input" .}}
+                            <button type="submit" class="btn btn-danger">Logout</button>
+                        </form>
+                    </li>
+                    {{else}}
+                    <li><a href="/login" class="btn">Login</a></li>
+                    {{end}}
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        {{if and .isLoggedIn .APITokensRevokedAt}}
+        <div class="flash flash-error">
+            <div>API tokens were revoked because the session secret changed ({{.APITokensRevokedAt}}). Create new tokens in your profile.</div>
+            <form method="post" action="/profile/api-tokens/clear-warning" class="form-inline mt-0-5">
+                {{template "csrf_input" .}}
+                <button type="submit" class="btn btn-secondary btn-small">Dismiss</button>
+            </form>
+        </div>
+        {{end}}
+        {{block "content" .}}{{end}}
+    </main>
+
+    <footer class="site-footer">
+        <p>Blocks {{.Version}} - Building Block Collection Manager · <a href="https://github.com/matthewgall/blocks" target="_blank" rel="noopener">GitHub</a></p>
+        <p>LEGO® is a trademark of the LEGO Group of companies which does not sponsor, authorize or endorse this site.</p>
+    </footer>
+
+    {{template "confirm_modal" .}}
+    {{if .isLoggedIn}}
+    <div class="modal-backdrop" id="session-timeout-backdrop" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="session-timeout-title" aria-describedby="session-timeout-message">
+            <div class="modal-header">
+                <h3 id="session-timeout-title">Still there?</h3>
+            </div>
+            <p id="session-timeout-message" class="text-muted">For your security, we will sign you out soon unless you confirm you're still here.</p>
+            <p class="text-muted">Signing out in <strong id="session-timeout-countdown">5:00</strong>.</p>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="session-timeout-stay">I'm still here</button>
+                <button type="button" class="btn btn-danger" id="session-timeout-logout">Sign out now</button>
+            </div>
+        </div>
+    </div>
+    {{end}}
+
+    <script src="/static/scripts.js"></script>
+    {{if .isLoggedIn}}
+    <script>
+    if (window.Blocks && window.Blocks.initSessionTimeout) {
+        window.Blocks.initSessionTimeout({
+            idleSeconds: Number('{{.SessionIdleSeconds}}') || 10800,
+            warnSeconds: Number('{{.SessionWarningSeconds}}') || 300
+        });
+    }
+    </script>
+    {{end}}
+</body>
+</html>

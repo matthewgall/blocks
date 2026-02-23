@@ -1,0 +1,117 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="card">
+    <div class="page-header">
+        <h1>Sets</h1>
+        {{if ne .role "viewer"}}
+        <a href="/sets/new" class="btn btn-success">Add New Set</a>
+        {{end}}
+    </div>
+
+    {{template "flash" .}}
+
+    <form method="get" class="card form-card card-muted">
+        <div class="grid">
+            <div class="form-group">
+                <label for="search">Search</label>
+                <input type="text" id="search" name="search" value="{{.Search}}" placeholder="Search sets...">
+            </div>
+            <div class="form-group">
+                <label for="brand">Brand</label>
+                <select id="brand" name="brand">
+                    <option value="">All Brands</option>
+                    {{range .Brands}}
+                    <option value="{{.ID}}" {{if eq $.BrandID .ID}}selected{{end}}>{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="theme">Theme</label>
+                <input type="text" id="theme" name="theme" value="{{value .Theme}}" placeholder="Theme...">
+            </div>
+            <div class="form-group">
+                <label for="tags">Tags</label>
+                {{template "tag_input" .}}
+            </div>
+            <div class="form-group form-group-end">
+                <button type="submit" class="btn btn-secondary">Search</button>
+            </div>
+        </div>
+    </form>
+
+    {{if .Sets}}
+    <div class="grid set-grid">
+        {{range .Sets}}
+        <div class="card set-card">
+            <div class="set-card-body">
+                <div class="set-card-media">
+                    {{template "set_image" (dict "Set" . "ImageClass" "card-image" "PlaceholderClass" "set-card-placeholder")}}
+                </div>
+                <div class="set-card-content">
+                    <div class="card-header-row">
+                        <h3 class="card-title"><a href="/sets/{{.ID}}" class="card-link">{{.Name}}</a></h3>
+                        <details class="actions-menu actions-mobile">
+                            <summary class="btn btn-secondary">Actions</summary>
+                            <div class="actions-menu-panel">
+                                <a href="/sets/{{.ID}}" class="btn btn-secondary">View</a>
+                                {{if ne $.role "viewer"}}
+                                <a href="/sets/{{.ID}}/edit" class="btn btn-secondary">Edit</a>
+                                <a href="/collection/new?set_id={{.ID}}" class="btn btn-success">Add to Collection</a>
+                                {{end}}
+                                {{if eq $.role "admin"}}
+                                <form method="post" action="/sets/{{.ID}}/delete" class="form-inline" data-confirm-title="Delete set" data-confirm-message="Delete this set? This cannot be undone.">
+                                    {{template "csrf_input" $}}
+                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                </form>
+                                {{end}}
+                            </div>
+                        </details>
+                    </div>
+                    <p><strong>{{.SetCode}}</strong> - {{.Brand.Name}}</p>
+                    {{if .Year}}<p>Year: {{.Year}}</p>{{end}}
+                    {{if .PieceCount}}<p>Pieces: {{.PieceCount}}</p>{{end}}
+                    {{if .Theme}}<p>Theme: {{value .Theme}}</p>{{end}}
+                    {{if and .Brand (eq .Brand.Kind "lego") .SetCode}}
+                    <p>
+                        Brickset:
+                        <a href="https://brickset.com/sets/{{setCodeWithSuffix .SetCode}}" target="_blank" rel="noopener">{{setCodeWithSuffix .SetCode}}</a>
+                    </p>
+                    <p>
+                        Rebrickable:
+                        <a href="https://rebrickable.com/sets/{{setCodeWithSuffix .SetCode}}" target="_blank" rel="noopener">{{setCodeWithSuffix .SetCode}}</a>
+                    </p>
+                    {{end}}
+                    
+                    {{if .Tags}}
+                    <div class="tag-list">
+                        {{range .Tags}}
+                        <span class="badge badge-neutral">{{.}}</span>
+                        {{end}}
+                    </div>
+                    {{end}}
+                    
+                    <div class="actions mt-1 actions-desktop">
+                        <a href="/sets/{{.ID}}" class="btn btn-secondary">View</a>
+                        {{if ne $.role "viewer"}}
+                        <a href="/sets/{{.ID}}/edit" class="btn btn-secondary">Edit</a>
+                        <a href="/collection/new?set_id={{.ID}}" class="btn btn-success">Add to Collection</a>
+                        {{end}}
+                        {{if eq $.role "admin"}}
+                        <form method="post" action="/sets/{{.ID}}/delete" class="form-inline" data-confirm-title="Delete set" data-confirm-message="Delete this set? This cannot be undone.">
+                            {{template "csrf_input" $}}
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                        {{end}}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{end}}
+    </div>
+    {{else}}
+    <p>No sets yet. Add your first set to get started.</p>
+    {{end}}
+</div>
+
+{{end}}

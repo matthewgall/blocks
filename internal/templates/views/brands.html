@@ -1,0 +1,45 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="card">
+    <div class="page-header">
+        <h1>Brands</h1>
+        {{if ne .role "viewer"}}
+        <a href="/brands/new" class="btn btn-success">Add New Brand</a>
+        {{end}}
+    </div>
+
+    {{template "flash" .}}
+
+    {{if .Brands}}
+    <div class="grid">
+        {{range .Brands}}
+        <div class="card">
+            <div class="card-header-row">
+                <h3 class="card-title"><a href="/brands/{{.ID}}" class="card-link">{{.Name}}</a></h3>
+                <details class="actions-menu actions-mobile">
+                    <summary class="btn btn-secondary">Actions</summary>
+                    <div class="actions-menu-panel">
+                        <a href="/brands/{{.ID}}" class="btn btn-secondary">View</a>
+                        {{if ne $.role "viewer"}}
+                        <a href="/brands/{{.ID}}/edit" class="btn btn-secondary">Edit</a>
+                        {{end}}
+                        {{if eq $.role "admin"}}
+                        <form method="post" action="/brands/{{.ID}}/delete" class="form-inline" data-confirm-title="Delete brand" data-confirm-message="Delete this brand? This cannot be undone.">
+                            {{template "csrf_input" $}}
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                        {{end}}
+                    </div>
+                </details>
+            </div>
+            <p class="meta-label">{{.Kind}}</p>
+            {{if .Notes}}<p>{{value .Notes}}</p>{{end}}
+        </div>
+        {{end}}
+    </div>
+    {{else}}
+    <p>No brands yet. Add your first brand to get organized.</p>
+    {{end}}
+</div>
+{{end}}

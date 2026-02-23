@@ -1,0 +1,105 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="card">
+    <div class="page-header">
+        <h1>Collection Items</h1>
+        {{if ne .role "viewer"}}
+        <a href="/collection/new" class="btn btn-success">Add Item</a>
+        {{end}}
+    </div>
+
+    {{template "flash" .}}
+
+    <form method="get" class="card form-card card-muted">
+        <div class="grid">
+            <div class="form-group">
+                <label for="status">Status</label>
+                <select id="status" name="status">
+                    <option value="">All Status</option>
+                    <option value="active" {{if eq .Status "active"}}selected{{end}}>Active</option>
+                    <option value="sold" {{if eq .Status "sold"}}selected{{end}}>Sold</option>
+                    <option value="donated" {{if eq .Status "donated"}}selected{{end}}>Donated</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="condition">Condition</label>
+                <select id="condition" name="condition">
+                    <option value="">All Conditions</option>
+                    <option value="sealed" {{if eq .Condition "sealed"}}selected{{end}}>Sealed</option>
+                    <option value="open" {{if eq .Condition "open"}}selected{{end}}>Open</option>
+                    <option value="partial" {{if eq .Condition "partial"}}selected{{end}}>Partial</option>
+                    <option value="custom" {{if eq .Condition "custom"}}selected{{end}}>Custom</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="tags">Tags</label>
+                <input type="text" id="tags" name="tags" value="{{.TagInput}}" placeholder="tag, tag">
+            </div>
+            <div class="form-group form-group-end">
+                <button type="submit" class="btn btn-secondary">Filter</button>
+            </div>
+        </div>
+    </form>
+
+    {{if .Items}}
+    <div class="table-scroll">
+        <table class="table-compact">
+            <thead>
+                <tr>
+                    <th>Set</th>
+                    <th>Quantity</th>
+                    <th>Condition</th>
+                    <th>Location</th>
+                    <th>Tags</th>
+                    <th>Purchase Price</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Items}}
+                <tr>
+                    <td><a href="/sets/{{.SetID}}">{{.Set.Name}} ({{.Set.SetCode}})</a></td>
+                    <td>{{.Quantity}}</td>
+                    <td><span class="badge badge-{{.Condition}}">{{.Condition}}</span></td>
+                    <td>{{value .Location}}</td>
+                    <td>
+                        {{if .Tags}}
+                        <div class="tag-list">
+                            {{range .Tags}}
+                            <span class="badge badge-neutral">{{.}}</span>
+                            {{end}}
+                        </div>
+                        {{end}}
+                    </td>
+                    <td>{{if .PurchasePrice}}{{formatMoney $.Currency .PurchasePrice}}{{else}}-{{end}}</td>
+                    <td><span class="badge badge-{{.Status}}">{{.Status}}</span></td>
+                    <td class="table-actions-cell">
+                        <div class="actions-menu-top">
+                            <details class="actions-menu actions-mobile">
+                                <summary class="btn btn-secondary">Actions</summary>
+                                <div class="actions-menu-panel">
+                                    {{if ne $.role "viewer"}}
+                                    <a href="/collection/{{.ID}}/edit" class="btn btn-secondary">Edit</a>
+                                    {{end}}
+                                {{if eq $.role "admin"}}
+                                <form method="post" action="/collection/{{.ID}}/delete" class="form-inline" data-confirm-title="Delete item" data-confirm-message="Delete this collection item? This cannot be undone.">
+                                    {{template "csrf_input" $}}
+                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                </form>
+                                {{end}}
+                                </div>
+                            </details>
+                        </div>
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{else}}
+    <p>No collection items yet. Add your first item to get started.</p>
+    {{end}}
+</div>
+{{end}}

@@ -1,0 +1,128 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+{{template "flash" .}}
+<div class="stats">
+    <div class="stat-card">
+        <div class="stat-number">{{.Stats.TotalSets}}</div>
+        <div class="stat-label">Total Sets</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{.Stats.TotalItems}}</div>
+        <div class="stat-label">Collection Items</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{.Stats.TotalBrands}}</div>
+        <div class="stat-label">Brands</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{.Stats.TotalPieces}}</div>
+        <div class="stat-label">Total Pieces</div>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h2>Recent Collection Items</h2>
+        {{if .RecentItems}}
+        <table class="table-compact">
+            <thead>
+                <tr>
+                    <th>Set</th>
+                    <th>Quantity</th>
+                    <th>Condition</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .RecentItems}}
+                <tr>
+                    <td><a href="/sets/{{.SetID}}">{{.Set.Name}}</a></td>
+                    <td>{{.Quantity}}</td>
+                    <td><span class="badge badge-{{.Condition}}">{{.Condition}}</span></td>
+                    <td><span class="badge badge-{{.Status}}">{{.Status}}</span></td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{else}}
+        <p>No collection items yet. Add a set to start tracking your collection.</p>
+        {{end}}
+    </div>
+
+    <div class="card">
+        <h2>Quick Actions</h2>
+        <div class="stack">
+            <a href="/sets/new" class="btn btn-success">Add New Set</a>
+            <a href="/collection/new" class="btn btn-secondary">Add Collection Item</a>
+            <a href="/import" class="btn btn-secondary">Import Collection</a>
+            <a href="/export" class="btn btn-secondary">Export Collection</a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Collection Overview</h2>
+    <div class="overview-grid">
+        <div class="overview-card">
+            <div class="overview-header">
+                <h3>Theme Mix</h3>
+                <span class="text-muted">By collection quantity</span>
+            </div>
+            {{if .ThemeInsights}}
+            <div class="bar-list">
+                {{range .ThemeInsights}}
+                <div class="bar-row" style="--bar: {{.Percent}}%;">
+                    <div class="bar-label">{{.Label}}</div>
+                    <div class="bar-track"><span class="bar-fill"></span></div>
+                    <div class="bar-value">{{.Count}}</div>
+                </div>
+                {{end}}
+            </div>
+            {{else}}
+            <p class="text-muted">No themed sets yet.</p>
+            {{end}}
+        </div>
+
+        <div class="overview-card">
+            <div class="overview-header">
+                <h3>Top Tags</h3>
+                <span class="text-muted">By collection quantity</span>
+            </div>
+            {{if .TagInsights}}
+            <div class="bar-list">
+                {{range .TagInsights}}
+                <div class="bar-row" style="--bar: {{.Percent}}%;">
+                    <div class="bar-label">{{.Label}}</div>
+                    <div class="bar-track"><span class="bar-fill"></span></div>
+                    <div class="bar-value">{{.Count}}</div>
+                </div>
+                {{end}}
+            </div>
+            {{else}}
+            <p class="text-muted">No tagged items yet.</p>
+            {{end}}
+        </div>
+
+        <div class="overview-card">
+            <div class="overview-header">
+                <h3>Brands</h3>
+                <span class="text-muted">Sets per brand</span>
+            </div>
+            {{if .BrandInsights}}
+            <div class="bar-list">
+                {{range .BrandInsights}}
+                <div class="bar-row" style="--bar: {{.Percent}}%;">
+                    <div class="bar-label">{{.Label}}</div>
+                    <div class="bar-track"><span class="bar-fill"></span></div>
+                    <div class="bar-value">{{.Count}}</div>
+                </div>
+                {{end}}
+            </div>
+            {{else}}
+            <p class="text-muted">No sets yet. Add a set to see brand breakdown.</p>
+            {{end}}
+        </div>
+    </div>
+</div>
+{{end}}

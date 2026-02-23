@@ -1,0 +1,69 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="card">
+    <div class="page-header">
+        <h1>Users</h1>
+        <a href="/admin/users/new" class="btn btn-success">Add User</a>
+    </div>
+
+    {{template "flash" .}}
+
+    {{if .Users}}
+    <table class="table-compact">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Users}}
+            <tr>
+                <td>{{.Username}}</td>
+                <td><span class="badge badge-neutral badge-capitalize">{{.Role}}</span></td>
+                <td>
+                    {{if .DisabledAt}}
+                    <span class="badge badge-danger">Disabled</span>
+                    {{else}}
+                    <span class="badge badge-success">Active</span>
+                    {{end}}
+                </td>
+                <td>{{.CreatedAt}}</td>
+                <td class="table-actions-cell">
+                    <div class="actions-menu-top">
+                        <details class="actions-menu actions-mobile">
+                            <summary class="btn btn-secondary">Actions</summary>
+                            <div class="actions-menu-panel">
+                                <a href="/admin/users/{{.ID}}/edit" class="btn btn-secondary">Edit</a>
+                                {{if .DisabledAt}}
+                                <form method="post" action="/admin/users/{{.ID}}/enable" class="form-inline" data-confirm-title="Enable user" data-confirm-message="Enable this user account?">
+                                    {{template "csrf_input" $}}
+                                    <button type="submit" class="btn btn-success">Enable</button>
+                                </form>
+                                {{else}}
+                                <form method="post" action="/admin/users/{{.ID}}/disable" class="form-inline" data-confirm-title="Disable user" data-confirm-message="Disable this user account?">
+                                    {{template "csrf_input" $}}
+                                    <button type="submit" class="btn btn-danger">Disable</button>
+                                </form>
+                                {{end}}
+                                <form method="post" action="/admin/users/{{.ID}}/delete" class="form-inline" data-confirm-title="Delete user" data-confirm-message="Delete this user? This cannot be undone.">
+                                    {{template "csrf_input" $}}
+                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                </form>
+                            </div>
+                        </details>
+                    </div>
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+    {{else}}
+    <p>No users found. Add your first user to get started.</p>
+    {{end}}
+</div>
+{{end}}

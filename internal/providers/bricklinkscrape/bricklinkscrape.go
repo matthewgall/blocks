@@ -96,7 +96,9 @@ func (c *Client) fetchHTML(ctx context.Context, url string) (*html.Node, error) 
 		return nil, fmt.Errorf("fetch bricklink page: %w", err)
 	}
 	defer func() {
-		_ = resp.Body.Close()
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("closing bricklink scrape response: %v", err)
+		}
 	}()
 
 	if resp.StatusCode != http.StatusOK {

@@ -2005,7 +2005,9 @@ func (s *Server) handleExportBlocks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer func() {
-			_ = root.Close()
+			if err := root.Close(); err != nil {
+				log.Printf("closing export root: %v", err)
+			}
 		}()
 		file, err := root.Open(filepath.Base(path))
 		if err != nil {
@@ -2013,7 +2015,9 @@ func (s *Server) handleExportBlocks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer func() {
-			_ = file.Close()
+			if err := file.Close(); err != nil {
+				log.Printf("closing export file: %v", err)
+			}
 		}()
 
 		filename := fmt.Sprintf("blocks_export_%s.db", time.Now().Format("20060102"))
@@ -4026,7 +4030,9 @@ func (s *Server) findCachedSetImage(cacheDir string, setID int64) (string, bool)
 		return "", false
 	}
 	defer func() {
-		_ = root.Close()
+		if err := root.Close(); err != nil {
+			log.Printf("closing image cache root: %v", err)
+		}
 	}()
 
 	prefix := fmt.Sprintf("set-%d.", setID)
@@ -4069,7 +4075,11 @@ func (s *Server) fetchAndCacheSetImage(ctx context.Context, cacheDir string, set
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("closing image response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("unexpected status: %d", resp.StatusCode)
@@ -4097,7 +4107,9 @@ func (s *Server) fetchAndCacheSetImage(ctx context.Context, cacheDir string, set
 		return "", err
 	}
 	defer func() {
-		_ = root.Close()
+		if err := root.Close(); err != nil {
+			log.Printf("closing image cache root: %v", err)
+		}
 	}()
 	file, err := root.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {

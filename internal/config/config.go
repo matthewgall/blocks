@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -33,7 +35,7 @@ type DatabaseConfig struct {
 }
 
 type AuthConfig struct {
-	SessionSecret string `yaml:"session_secret"`
+	SessionSecret string `yaml:"session_secret"` // #nosec G117 -- configuration secret field.
 	BcryptCost    int    `yaml:"bcrypt_cost"`
 }
 
@@ -55,7 +57,7 @@ type UploadsS3Config struct {
 	PublicURL       string `yaml:"public_url"`
 	AccessKeyID     string `yaml:"access_key_id"`
 	SecretAccessKey string `yaml:"secret_access_key"`
-	SessionToken    string `yaml:"session_token"`
+	SessionToken    string `yaml:"session_token"` // #nosec G117 -- configuration secret field.
 	Prefix          string `yaml:"prefix"`
 	PathStyle       bool   `yaml:"path_style"`
 }
@@ -66,12 +68,12 @@ type ProvidersConfig struct {
 }
 
 type BricksetConfig struct {
-	APIKey     string `yaml:"api_key"`
+	APIKey     string `yaml:"api_key"` // #nosec G117 -- configuration secret field.
 	DailyLimit int    `yaml:"daily_limit"`
 }
 
 type RebrickableConfig struct {
-	APIKey string `yaml:"api_key"`
+	APIKey string `yaml:"api_key"` // #nosec G117 -- configuration secret field.
 }
 
 type CacheConfig struct {
@@ -89,7 +91,7 @@ type CacheTTLConfig struct {
 type CacheRedisConfig struct {
 	URL      string `yaml:"url"`
 	Addr     string `yaml:"addr"`
-	Password string `yaml:"password"`
+	Password string `yaml:"password"` // #nosec G117 -- configuration secret field.
 	DB       int    `yaml:"db"`
 	UseTLS   bool   `yaml:"tls"`
 }
@@ -136,14 +138,23 @@ func Load(path string) (*Config, error) {
 		},
 	}
 
-	if _, err := os.Stat(path); err == nil {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil, fmt.Errorf("reading config file: %w", err)
-		}
+	root, err := os.OpenRoot(filepath.Dir(path))
+	if err == nil {
+		defer root.Close()
+		if _, err := root.Stat(filepath.Base(path)); err == nil {
+			file, err := root.Open(filepath.Base(path))
+			if err != nil {
+				return nil, fmt.Errorf("reading config file: %w", err)
+			}
+			defer file.Close()
+			data, err := io.ReadAll(file)
+			if err != nil {
+				return nil, fmt.Errorf("reading config file: %w", err)
+			}
 
-		if err := yaml.Unmarshal(data, cfg); err != nil {
-			return nil, fmt.Errorf("parsing config file: %w", err)
+			if err := yaml.Unmarshal(data, cfg); err != nil {
+				return nil, fmt.Errorf("parsing config file: %w", err)
+			}
 		}
 	}
 

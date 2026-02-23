@@ -261,6 +261,7 @@ CREATE INDEX IF NOT EXISTS idx_api_tokens_token_hash ON api_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS idx_api_tokens_revoked_at ON api_tokens(revoked_at);
 `
 
+// #nosec G101 -- SQL migration text, not credentials.
 const apiTokensEnhancements = `
 ALTER TABLE api_tokens RENAME TO api_tokens_old;
 

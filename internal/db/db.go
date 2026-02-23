@@ -16,7 +16,7 @@ type DB struct {
 }
 
 func New(path string) (*DB, error) {
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return nil, fmt.Errorf("creating database directory: %w", err)
 	}
 

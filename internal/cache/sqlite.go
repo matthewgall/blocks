@@ -29,7 +29,7 @@ func NewWithPath(path string) (Cache, error) {
 	if path == "" {
 		return nil, fmt.Errorf("cache path required")
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return nil, fmt.Errorf("creating cache directory: %w", err)
 	}
 

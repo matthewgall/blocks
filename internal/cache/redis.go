@@ -15,7 +15,7 @@ import (
 
 type RedisConfig struct {
 	Addr     string
-	Password string
+	Password string // #nosec G117 -- configuration secret field.
 	DB       int
 	UseTLS   bool
 }

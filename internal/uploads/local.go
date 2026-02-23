@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type LocalStorage struct {
@@ -16,11 +17,17 @@ func NewLocal(baseDir string) *LocalStorage {
 }
 
 func (l *LocalStorage) Save(_ context.Context, key string, body io.Reader) error {
-	path := l.pathForKey(key)
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	relative := filepath.FromSlash(key)
+	root, err := os.OpenRoot(l.baseDir)
+	if err != nil {
 		return err
 	}
-	file, err := os.Create(path)
+	defer root.Close()
+
+	if err := mkdirAllRoot(root, filepath.Dir(relative), 0o750); err != nil {
+		return err
+	}
+	file, err := root.OpenFile(relative, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
 		return err
 	}
@@ -31,12 +38,28 @@ func (l *LocalStorage) Save(_ context.Context, key string, body io.Reader) error
 }
 
 func (l *LocalStorage) Open(_ context.Context, key string) (io.ReadCloser, error) {
-	return os.Open(l.pathForKey(key))
+	root, err := os.OpenRoot(l.baseDir)
+	if err != nil {
+		return nil, err
+	}
+	file, err := root.Open(filepath.FromSlash(key))
+	if err != nil {
+		if closeErr := root.Close(); closeErr != nil {
+			return nil, closeErr
+		}
+		return nil, err
+	}
+	return &rootReadCloser{root: root, file: file}, nil
 }
 
 func (l *LocalStorage) Delete(_ context.Context, key string) error {
-	path := l.pathForKey(key)
-	if err := os.Remove(path); err != nil {
+	root, err := os.OpenRoot(l.baseDir)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+
+	if err := root.Remove(filepath.FromSlash(key)); err != nil {
 		if os.IsNotExist(err) {
 			return nil
 		}
@@ -45,6 +68,44 @@ func (l *LocalStorage) Delete(_ context.Context, key string) error {
 	return nil
 }
 
-func (l *LocalStorage) pathForKey(key string) string {
-	return filepath.Join(l.baseDir, filepath.FromSlash(key))
+func mkdirAllRoot(root *os.Root, dir string, perm os.FileMode) error {
+	clean := filepath.Clean(dir)
+	if clean == "." || clean == string(filepath.Separator) {
+		return nil
+	}
+	parts := strings.Split(clean, string(filepath.Separator))
+	current := ""
+	for _, part := range parts {
+		if part == "" || part == "." {
+			continue
+		}
+		if current == "" {
+			current = part
+		} else {
+			current = filepath.Join(current, part)
+		}
+		if err := root.Mkdir(current, perm); err != nil {
+			if !os.IsExist(err) {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type rootReadCloser struct {
+	root *os.Root
+	file *os.File
+}
+
+func (r *rootReadCloser) Read(p []byte) (int, error) {
+	return r.file.Read(p)
+}
+
+func (r *rootReadCloser) Close() error {
+	if err := r.file.Close(); err != nil {
+		_ = r.root.Close()
+		return err
+	}
+	return r.root.Close()
 }

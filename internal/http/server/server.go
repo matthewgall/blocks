@@ -943,12 +943,14 @@ func (s *Server) renderTemplate(w http.ResponseWriter, r *http.Request, tmplName
 
 	tmpl, ok := s.templates[tmplName]
 	if !ok {
+		// #nosec G706 -- log only, no sensitive sink.
 		log.Printf("Template not found: %s", tmplName)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	if err := tmpl.ExecuteTemplate(w, tmplName, tmplData); err != nil {
+		// #nosec G706 -- log only, no sensitive sink.
 		log.Printf("Error rendering template %s: %v", tmplName, err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
@@ -1039,6 +1041,7 @@ func (s *Server) roleMiddleware(next http.Handler) http.Handler {
 
 		role := normalizeRole(user.Role)
 		if !roleAllowed(role, policy...) {
+			// #nosec G706 -- log only, no sensitive sink.
 			log.Printf("forbidden request: role=%s method=%s path=%s", role, r.Method, r.URL.Path)
 			respondForbidden(w, r)
 			return
@@ -1294,8 +1297,13 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
+// #nosec G101 -- settings keys are not credentials.
 const appSettingSessionSecretFingerprint = "session_secret_fingerprint"
+
+// #nosec G101 -- settings keys are not credentials.
 const appSettingAPITokensRevokedAt = "api_tokens_revoked_at"
+
+// #nosec G101 -- settings keys are not credentials.
 const appSettingAPITokensWarningDismissedPrefix = "api_tokens_warning_dismissed_user_"
 
 func ensureSessionSecretFingerprint(conn *sql.DB, secret string) (*time.Time, error) {
@@ -1398,7 +1406,7 @@ func sessionSecretFingerprint(secret string) string {
 func (s *Server) handleAPILogin(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Username string `json:"username"`
-		Password string `json:"password"`
+		Password string `json:"password"` // #nosec G117 -- request payload field.
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -1986,7 +1994,13 @@ func (s *Server) handleExportBlocks(w http.ResponseWriter, r *http.Request) {
 			redirectWithError(w, r, "/export", "Database path not configured")
 			return
 		}
-		file, err := os.Open(path)
+		root, err := os.OpenRoot(filepath.Dir(path))
+		if err != nil {
+			redirectWithError(w, r, "/export", "Unable to export database")
+			return
+		}
+		defer root.Close()
+		file, err := root.Open(filepath.Base(path))
 		if err != nil {
 			redirectWithError(w, r, "/export", "Unable to export database")
 			return
@@ -3616,6 +3630,7 @@ func (s *Server) handleDeleteCollectionForm(w http.ResponseWriter, r *http.Reque
 	images := s.getCollectionItemImages(id)
 	for _, image := range images {
 		if err := s.uploads.Delete(r.Context(), image.StorageKey); err != nil {
+			// #nosec G706 -- log only, no sensitive sink.
 			log.Printf("Unable to delete collection image %d: %v", image.ID, err)
 		}
 	}
@@ -3799,6 +3814,7 @@ func (s *Server) handleCollectionImageUpload(w http.ResponseWriter, r *http.Requ
 	isAjax := strings.EqualFold(r.Header.Get("X-Requested-With"), "XMLHttpRequest")
 
 	if _, err := s.getCollectionItemByID(itemID); err != nil {
+		// #nosec G706 -- log only, no sensitive sink.
 		log.Printf("image upload: item %d not found: %v", itemID, err)
 		if isAjax {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "collection item not found"})
@@ -3814,6 +3830,7 @@ func (s *Server) handleCollectionImageUpload(w http.ResponseWriter, r *http.Requ
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxSize)
 	if err := r.ParseMultipartForm(maxSize); err != nil {
+		// #nosec G706 -- log only, no sensitive sink.
 		log.Printf("image upload: parse multipart failed for item %d: %v", itemID, err)
 		if isAjax {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "unable to read uploads"})
@@ -3825,6 +3842,7 @@ func (s *Server) handleCollectionImageUpload(w http.ResponseWriter, r *http.Requ
 
 	files := r.MultipartForm.File["images"]
 	if len(files) == 0 {
+		// #nosec G706 -- log only, no sensitive sink.
 		log.Printf("image upload: no files provided for item %d", itemID)
 		if isAjax {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "no images provided"})
@@ -3835,6 +3853,7 @@ func (s *Server) handleCollectionImageUpload(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := s.saveCollectionItemImages(r.Context(), itemID, files); err != nil {
+		// #nosec G706 -- log only, no sensitive sink.
 		log.Printf("image upload: save failed for item %d: %v", itemID, err)
 		if isAjax {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -3934,7 +3953,7 @@ func (s *Server) handleSetImageProxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cacheDir := filepath.Join("data", "cache", "set-images")
-	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
+	if err := os.MkdirAll(cacheDir, 0o750); err != nil {
 		log.Printf("Unable to create image cache dir: %v", err)
 	}
 
@@ -3983,6 +4002,11 @@ func (s *Server) findCachedSetImage(cacheDir string, setID int64) (string, bool)
 	if err != nil {
 		return "", false
 	}
+	root, err := os.OpenRoot(cacheDir)
+	if err != nil {
+		return "", false
+	}
+	defer root.Close()
 
 	prefix := fmt.Sprintf("set-%d.", setID)
 	for _, entry := range entries {
@@ -3993,13 +4017,12 @@ func (s *Server) findCachedSetImage(cacheDir string, setID int64) (string, bool)
 		if !strings.HasPrefix(name, prefix) {
 			continue
 		}
-		path := filepath.Join(cacheDir, name)
 		info, err := entry.Info()
 		if err == nil && s.imageCacheExpired(info.ModTime()) {
-			_ = os.Remove(path)
+			_ = root.Remove(name)
 			continue
 		}
-		return path, true
+		return filepath.Join(cacheDir, name), true
 	}
 
 	return "", false
@@ -4020,6 +4043,7 @@ func (s *Server) fetchAndCacheSetImage(ctx context.Context, cacheDir string, set
 		return "", err
 	}
 
+	// #nosec G704 -- URL is validated against an allowlist.
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
@@ -4047,12 +4071,24 @@ func (s *Server) fetchAndCacheSetImage(ctx context.Context, cacheDir string, set
 	}
 
 	filename := fmt.Sprintf("set-%d%s", setID, ext)
-	path := filepath.Join(cacheDir, filename)
-	if err := os.WriteFile(path, data, 0o644); err != nil {
+	root, err := os.OpenRoot(cacheDir)
+	if err != nil {
+		return "", err
+	}
+	defer root.Close()
+	file, err := root.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+	if err != nil {
+		return "", err
+	}
+	if _, err := file.Write(data); err != nil {
+		_ = file.Close()
+		return "", err
+	}
+	if err := file.Close(); err != nil {
 		return "", err
 	}
 
-	return path, nil
+	return filepath.Join(cacheDir, filename), nil
 }
 
 func imageExtension(contentType string) string {
@@ -4432,6 +4468,7 @@ func (s *Server) getFilteredSets(search, theme string, tags []string, brandID in
 	}
 	query += "\nORDER BY s.name"
 
+	// #nosec G701 -- query uses parameterized args and controlled joins.
 	rows, err := s.db.Conn().Query(query, args...)
 	if err != nil {
 		return nil
@@ -4863,7 +4900,21 @@ func (s *Server) insertTagLinks(tx *sql.Tx, table string, idColumn string, paren
 		return err
 	}
 
-	statement := fmt.Sprintf("INSERT OR IGNORE INTO %s (%s, tag_id) VALUES (?, ?)", table, idColumn)
+	var statement string
+	switch table {
+	case "set_tags":
+		if idColumn != "set_id" {
+			return fmt.Errorf("invalid tag column")
+		}
+		statement = "INSERT OR IGNORE INTO set_tags (set_id, tag_id) VALUES (?, ?)"
+	case "collection_item_tags":
+		if idColumn != "collection_item_id" {
+			return fmt.Errorf("invalid tag column")
+		}
+		statement = "INSERT OR IGNORE INTO collection_item_tags (collection_item_id, tag_id) VALUES (?, ?)"
+	default:
+		return fmt.Errorf("invalid tag table")
+	}
 	for _, name := range tags {
 		tagID, ok := tagIDs[name]
 		if !ok {
@@ -4889,7 +4940,8 @@ func (s *Server) ensureTagIDs(tx *sql.Tx, tags []string) (map[string]int64, erro
 	}
 
 	placeholders := buildPlaceholders(len(tags))
-	query := fmt.Sprintf("SELECT id, name FROM tags WHERE name IN (%s)", placeholders)
+	// #nosec G202 -- placeholders are generated from count; args are parameterized.
+	query := "SELECT id, name FROM tags WHERE name IN (" + placeholders + ")"
 	args := make([]interface{}, 0, len(tags))
 	for _, name := range tags {
 		args = append(args, name)
@@ -5998,7 +6050,7 @@ func (s *Server) handleAPIListUsers(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleAPICreateUser(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Username string `json:"username"`
-		Password string `json:"password"`
+		Password string `json:"password"` // #nosec G117 -- request payload field.
 		Role     string `json:"role"`
 	}
 
@@ -6031,7 +6083,7 @@ func (s *Server) handleAPICreateUser(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleAPIUpdateUser(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Username string `json:"username"`
-		Password string `json:"password"`
+		Password string `json:"password"` // #nosec G117 -- request payload field.
 		Role     string `json:"role"`
 	}
 

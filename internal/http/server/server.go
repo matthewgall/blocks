@@ -5299,7 +5299,11 @@ func (s *Server) listUsers() []models.User {
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing users rows: %v", err)
+		}
+	}()
 
 	var users []models.User
 	for rows.Next() {
@@ -5323,7 +5327,11 @@ func (s *Server) listUserAPITokens(userID int64) []apiTokenView {
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing api token rows: %v", err)
+		}
+	}()
 
 	var tokens []apiTokenView
 	for rows.Next() {
@@ -5553,7 +5561,11 @@ func (s *Server) getCollectionItemImages(itemID int64) []models.CollectionItemIm
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing collection item images rows: %v", err)
+		}
+	}()
 
 	var images []models.CollectionItemImage
 	for rows.Next() {
@@ -5597,7 +5609,11 @@ func (s *Server) getValuationsForSet(setID int64) ([]models.Valuation, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing valuations rows: %v", err)
+		}
+	}()
 
 	var valuations []models.Valuation
 	for rows.Next() {
@@ -5627,7 +5643,11 @@ func (s *Server) getCollectionItemsForSet(setID int64) ([]models.CollectionItem,
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing collection items for set rows: %v", err)
+		}
+	}()
 
 	var items []models.CollectionItem
 	for rows.Next() {

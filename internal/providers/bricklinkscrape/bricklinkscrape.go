@@ -90,6 +90,7 @@ func (c *Client) fetchHTML(ctx context.Context, url string) (*html.Node, error) 
 	req.Header.Set("User-Agent", "Blocks/bricklink-scrape")
 	req.Header.Set("Accept", "text/html")
 
+	// #nosec G704 -- request targets a fixed bricklink domain.
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetch bricklink page: %w", err)

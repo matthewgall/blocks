@@ -219,6 +219,7 @@ func (c *Client) makeRequest(ctx context.Context, method string, request interfa
 	q.Add("params", string(requestBody))
 	req.URL.RawQuery = q.Encode()
 
+	// #nosec G704 -- request targets a fixed brickset domain.
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("making request: %w", err)

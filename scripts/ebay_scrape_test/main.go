@@ -72,6 +72,7 @@ func scrapeEbaySold(query string) (*scrapeResult, error) {
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 
+	// #nosec G704 -- request targets a fixed ebay domain.
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetch ebay page: %w", err)

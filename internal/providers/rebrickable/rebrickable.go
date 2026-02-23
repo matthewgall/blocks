@@ -76,6 +76,7 @@ func (c *Client) GetSetByNumber(ctx context.Context, setNumber string) (*Rebrick
 	req.Header.Set("Authorization", "key "+c.apiKey)
 	req.Header.Set("Accept", "application/json")
 
+	// #nosec G704 -- request targets a fixed rebrickable domain.
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("making request: %w", err)
@@ -127,6 +128,7 @@ func (c *Client) SearchSets(ctx context.Context, query string) ([]RebrickableSet
 	req.Header.Set("Authorization", "key "+c.apiKey)
 	req.Header.Set("Accept", "application/json")
 
+	// #nosec G704 -- request targets a fixed rebrickable domain.
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("making request: %w", err)

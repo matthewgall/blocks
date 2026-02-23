@@ -116,6 +116,7 @@ func fetchItemID(ctx context.Context, client *http.Client, setCode string) (int,
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 
+	// #nosec G704 -- request targets a fixed bricklink domain.
 	resp, err := client.Do(req)
 	if err != nil {
 		return 0, fmt.Errorf("fetch bricklink page: %w", err)
@@ -150,6 +151,7 @@ func fetchInventory(ctx context.Context, client *http.Client, url string) (*inve
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 
+	// #nosec G704 -- request targets a fixed bricklink domain.
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err

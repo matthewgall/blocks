@@ -220,7 +220,6 @@ const usersTable = `
 CREATE TABLE IF NOT EXISTS users (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	username TEXT UNIQUE NOT NULL,
-	display_name TEXT,
 	password_hash TEXT NOT NULL,
 	role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('admin', 'editor', 'viewer')),
 	disabled_at DATETIME,

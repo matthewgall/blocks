@@ -63,7 +63,11 @@ func (db *DB) ensureUserRoleColumn() error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing role column rows: %v", err)
+		}
+	}()
 
 	roleFound := false
 	for rows.Next() {
@@ -101,7 +105,11 @@ func (db *DB) ensureUserDisabledColumn() error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing disabled column rows: %v", err)
+		}
+	}()
 
 	disabledFound := false
 	for rows.Next() {
@@ -182,7 +190,11 @@ func (db *DB) appliedMigrations() (map[int]bool, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing migrations rows: %v", err)
+		}
+	}()
 
 	applied := make(map[int]bool)
 	for rows.Next() {

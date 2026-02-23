@@ -140,13 +140,17 @@ func Load(path string) (*Config, error) {
 
 	root, err := os.OpenRoot(filepath.Dir(path))
 	if err == nil {
-		defer root.Close()
+		defer func() {
+			_ = root.Close()
+		}()
 		if _, err := root.Stat(filepath.Base(path)); err == nil {
 			file, err := root.Open(filepath.Base(path))
 			if err != nil {
 				return nil, fmt.Errorf("reading config file: %w", err)
 			}
-			defer file.Close()
+			defer func() {
+				_ = file.Close()
+			}()
 			data, err := io.ReadAll(file)
 			if err != nil {
 				return nil, fmt.Errorf("reading config file: %w", err)
@@ -596,9 +600,10 @@ func applyRedisURL(cfg *CacheRedisConfig) error {
 		cfg.UseTLS = parsedBool
 	}
 	if value := strings.ToLower(strings.TrimSpace(query.Get("sslmode"))); value != "" {
-		if value == "require" || value == "verify-full" || value == "verify-ca" {
+		switch value {
+		case "require", "verify-full", "verify-ca":
 			cfg.UseTLS = true
-		} else if value == "disable" {
+		case "disable":
 			cfg.UseTLS = false
 		}
 	}

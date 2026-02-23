@@ -16,7 +16,11 @@ func TestDB_New(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
-	defer database.Close()
+	defer func() {
+		if err := database.Close(); err != nil {
+			t.Fatalf("Database close failed: %v", err)
+		}
+	}()
 
 	// Verify database file was created
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
@@ -38,7 +42,11 @@ func TestDB_Migration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
-	defer database.Close()
+	defer func() {
+		if err := database.Close(); err != nil {
+			t.Fatalf("Database close failed: %v", err)
+		}
+	}()
 
 	// Verify all tables were created
 	tables := []string{
@@ -73,7 +81,11 @@ func TestDB_ConnectionLimits(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
-	defer database.Close()
+	defer func() {
+		if err := database.Close(); err != nil {
+			t.Fatalf("Database close failed: %v", err)
+		}
+	}()
 
 	// Test that connection limits are set
 	stats := database.Conn().Stats()

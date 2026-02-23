@@ -36,7 +36,11 @@ func setupTestDB(t *testing.T) *sql.DB {
 
 func TestCache_Get(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Fatalf("Failed to close test database: %v", err)
+		}
+	}()
 
 	cache := New(db)
 	ctx := context.Background()
@@ -71,7 +75,11 @@ func TestCache_Get(t *testing.T) {
 
 func TestCache_Set(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Fatalf("Failed to close test database: %v", err)
+		}
+	}()
 
 	cache := New(db)
 	ctx := context.Background()
@@ -94,7 +102,11 @@ func TestCache_Set(t *testing.T) {
 
 func TestCache_Delete(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Fatalf("Failed to close test database: %v", err)
+		}
+	}()
 
 	cache := New(db)
 	ctx := context.Background()
@@ -123,7 +135,11 @@ func TestCache_Delete(t *testing.T) {
 
 func TestCache_TTLExpiry(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Fatalf("Failed to close test database: %v", err)
+		}
+	}()
 
 	cache := New(db)
 	ctx := context.Background()

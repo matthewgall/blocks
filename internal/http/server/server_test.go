@@ -23,7 +23,11 @@ func TestAuthMiddlewareClearsDeletedUserSession(t *testing.T) {
 	}
 
 	s := New(cfg)
-	defer s.db.Close()
+	defer func() {
+		if err := s.db.Close(); err != nil {
+			t.Fatalf("Database close failed: %v", err)
+		}
+	}()
 
 	userID, token := createTestUserToken(t, s, "alice")
 	createTestUserToken(t, s, "backup")
@@ -77,7 +81,11 @@ func TestListTagsEndpoint(t *testing.T) {
 	}
 
 	s := New(cfg)
-	defer s.db.Close()
+	defer func() {
+		if err := s.db.Close(); err != nil {
+			t.Fatalf("Database close failed: %v", err)
+		}
+	}()
 
 	if _, err := s.db.Conn().Exec("INSERT INTO tags (name) VALUES (?), (?)", "botanicals", "space"); err != nil {
 		t.Fatalf("insert tags: %v", err)

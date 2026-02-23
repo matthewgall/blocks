@@ -83,7 +83,9 @@ func scrapeBrickLinkPriceGuide(setCode string, source string) (*priceGuideResult
 	if err != nil {
 		return nil, fmt.Errorf("fetch bricklink page: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("bricklink request failed with status %d", resp.StatusCode)
@@ -183,7 +185,9 @@ func fetchInventory(url string) (*inventoryResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("inventory request failed with status %d", resp.StatusCode)

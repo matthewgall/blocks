@@ -55,7 +55,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("opening database: %v", err)
 	}
-	defer store.Close()
+	defer func() {
+		if err := store.Close(); err != nil {
+			log.Printf("closing database: %v", err)
+		}
+	}()
 
 	if err := ensureUserDoesNotExist(store.Conn(), *username); err != nil {
 		log.Fatal(err)

@@ -123,7 +123,8 @@ func New(cfg *config.Config) *Server {
 	if cacheProvider == "" {
 		cacheProvider = "sqlite"
 	}
-	if cacheProvider == "redis" {
+	switch cacheProvider {
+	case "redis":
 		redisCache, err := cache.NewRedis(database.Conn(), cache.RedisConfig{
 			Addr:     cfg.Cache.Redis.Addr,
 			Password: cfg.Cache.Redis.Password,
@@ -135,7 +136,7 @@ func New(cfg *config.Config) *Server {
 		} else {
 			cacheImpl = redisCache
 		}
-	} else if cacheProvider == "sqlite" {
+	case "sqlite":
 		if strings.TrimSpace(cfg.Cache.Directory) != "" {
 			cachePath := filepath.Join(cfg.Cache.Directory, "external_cache.db")
 			cacheDB, err := cache.NewWithPath(cachePath)
@@ -1526,7 +1527,9 @@ func (s *Server) handleImportUpload(w http.ResponseWriter, r *http.Request) {
 		redirectWithError(w, r, "/import", "CSV file is required")
 		return
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	condition := models.ItemCondition(strings.TrimSpace(r.FormValue("condition")))
 	if condition == "" {
@@ -1620,7 +1623,9 @@ func (s *Server) handleImportConfirm(w http.ResponseWriter, r *http.Request) {
 		redirectWithError(w, r, "/import", "Import file not found")
 		return
 	}
-	defer importReader.Close()
+	defer func() {
+		_ = importReader.Close()
+	}()
 
 	condition := models.ItemCondition(strings.TrimSpace(r.FormValue("condition")))
 	if condition == "" {
@@ -2203,11 +2208,11 @@ func detectImageContentType(file multipart.File) (string, error) {
 	buffer := make([]byte, 512)
 	n, err := file.Read(buffer)
 	if err != nil && !errors.Is(err, io.EOF) {
-		return "", fmt.Errorf("Unable to read image")
+		return "", fmt.Errorf("unable to read image")
 	}
 	contentType := http.DetectContentType(buffer[:n])
 	if imageExtension(contentType) == "" {
-		return "", fmt.Errorf("Unsupported image type")
+		return "", fmt.Errorf("unsupported image type")
 	}
 	return contentType, nil
 }
@@ -2224,7 +2229,7 @@ func (s *Server) saveCollectionItemImages(ctx context.Context, itemID int64, fil
 
 	tx, err := s.db.Conn().Begin()
 	if err != nil {
-		return fmt.Errorf("Unable to save images")
+		return fmt.Errorf("unable to save images")
 	}
 	defer func() {
 		_ = tx.Rollback()
@@ -2234,13 +2239,13 @@ func (s *Server) saveCollectionItemImages(ctx context.Context, itemID int64, fil
 	for _, header := range files {
 		if header.Size > maxSize {
 			cleanupStoredImages(ctx, s.uploads, storedKeys)
-			return fmt.Errorf("One or more images are too large")
+			return fmt.Errorf("one or more images are too large")
 		}
 
 		file, err := header.Open()
 		if err != nil {
 			cleanupStoredImages(ctx, s.uploads, storedKeys)
-			return fmt.Errorf("Unable to read image")
+			return fmt.Errorf("unable to read image")
 		}
 
 		contentType, err := detectImageContentType(file)
@@ -3888,7 +3893,9 @@ func (s *Server) handleCollectionImageServe(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Image not found", http.StatusNotFound)
 		return
 	}
-	defer reader.Close()
+	defer func() {
+		_ = reader.Close()
+	}()
 
 	contentType := strings.TrimSpace(image.ContentType)
 	if contentType == "" {

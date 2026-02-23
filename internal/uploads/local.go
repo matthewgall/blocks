@@ -22,7 +22,9 @@ func (l *LocalStorage) Save(_ context.Context, key string, body io.Reader) error
 	if err != nil {
 		return err
 	}
-	defer root.Close()
+	defer func() {
+		_ = root.Close()
+	}()
 
 	if err := mkdirAllRoot(root, filepath.Dir(relative), 0o750); err != nil {
 		return err
@@ -31,7 +33,9 @@ func (l *LocalStorage) Save(_ context.Context, key string, body io.Reader) error
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	_, err = io.Copy(file, body)
 	return err
@@ -57,7 +61,9 @@ func (l *LocalStorage) Delete(_ context.Context, key string) error {
 	if err != nil {
 		return err
 	}
-	defer root.Close()
+	defer func() {
+		_ = root.Close()
+	}()
 
 	if err := root.Remove(filepath.FromSlash(key)); err != nil {
 		if os.IsNotExist(err) {

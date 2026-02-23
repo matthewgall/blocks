@@ -287,7 +287,11 @@ func (c *Client) GetDailyUsage(ctx context.Context) ([]DailyUsage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("querying daily usage: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing brickset usage rows: %v", err)
+		}
+	}()
 
 	var usage []DailyUsage
 	for rows.Next() {

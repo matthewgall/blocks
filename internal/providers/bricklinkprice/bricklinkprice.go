@@ -121,7 +121,9 @@ func fetchItemID(ctx context.Context, client *http.Client, setCode string) (int,
 	if err != nil {
 		return 0, fmt.Errorf("fetch bricklink page: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != http.StatusOK {
 		return 0, fmt.Errorf("bricklink request failed with status %d", resp.StatusCode)
 	}
@@ -156,7 +158,9 @@ func fetchInventory(ctx context.Context, client *http.Client, url string) (*inve
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("inventory request failed with status %d", resp.StatusCode)
 	}

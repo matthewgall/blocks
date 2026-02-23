@@ -2004,13 +2004,17 @@ func (s *Server) handleExportBlocks(w http.ResponseWriter, r *http.Request) {
 			redirectWithError(w, r, "/export", "Unable to export database")
 			return
 		}
-		defer root.Close()
+		defer func() {
+			_ = root.Close()
+		}()
 		file, err := root.Open(filepath.Base(path))
 		if err != nil {
 			redirectWithError(w, r, "/export", "Unable to export database")
 			return
 		}
-		defer file.Close()
+		defer func() {
+			_ = file.Close()
+		}()
 
 		filename := fmt.Sprintf("blocks_export_%s.db", time.Now().Format("20060102"))
 		w.Header().Set("Content-Type", "application/octet-stream")
@@ -2257,27 +2261,27 @@ func (s *Server) saveCollectionItemImages(ctx context.Context, itemID int64, fil
 		if _, err := file.Seek(0, io.SeekStart); err != nil {
 			_ = file.Close()
 			cleanupStoredImages(ctx, s.uploads, storedKeys)
-			return fmt.Errorf("Unable to read image")
+			return fmt.Errorf("unable to read image")
 		}
 
 		ext := imageExtension(contentType)
 		if ext == "" {
 			_ = file.Close()
 			cleanupStoredImages(ctx, s.uploads, storedKeys)
-			return fmt.Errorf("Unsupported image type")
+			return fmt.Errorf("unsupported image type")
 		}
 
 		token, err := generateUploadToken()
 		if err != nil {
 			_ = file.Close()
 			cleanupStoredImages(ctx, s.uploads, storedKeys)
-			return fmt.Errorf("Unable to prepare image upload")
+			return fmt.Errorf("unable to prepare image upload")
 		}
 		key := path.Join("collection", strconv.FormatInt(itemID, 10), token+ext)
 		if err := s.uploads.Save(ctx, key, file); err != nil {
 			_ = file.Close()
 			cleanupStoredImages(ctx, s.uploads, storedKeys)
-			return fmt.Errorf("Unable to save image")
+			return fmt.Errorf("unable to save image")
 		}
 		_ = file.Close()
 		storedKeys = append(storedKeys, key)
@@ -2420,7 +2424,11 @@ func (s *Server) getCollectionItemsForExport() ([]exportCollectionRow, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing export rows: %v", err)
+		}
+	}()
 
 	var items []exportCollectionRow
 	for rows.Next() {
@@ -3071,7 +3079,11 @@ func (s *Server) handleListTags(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing tag rows: %v", err)
+		}
+	}()
 
 	var tags []string
 	for rows.Next() {
@@ -4013,7 +4025,9 @@ func (s *Server) findCachedSetImage(cacheDir string, setID int64) (string, bool)
 	if err != nil {
 		return "", false
 	}
-	defer root.Close()
+	defer func() {
+		_ = root.Close()
+	}()
 
 	prefix := fmt.Sprintf("set-%d.", setID)
 	for _, entry := range entries {
@@ -4082,7 +4096,9 @@ func (s *Server) fetchAndCacheSetImage(ctx context.Context, cacheDir string, set
 	if err != nil {
 		return "", err
 	}
-	defer root.Close()
+	defer func() {
+		_ = root.Close()
+	}()
 	file, err := root.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
 		return "", err

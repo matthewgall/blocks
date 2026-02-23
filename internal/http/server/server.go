@@ -5022,7 +5022,11 @@ func (s *Server) ensureTagIDs(tx *sql.Tx, tags []string) (map[string]int64, erro
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing tag lookup rows: %v", err)
+		}
+	}()
 
 	result := make(map[string]int64, len(tags))
 	for rows.Next() {
@@ -5064,7 +5068,11 @@ func (s *Server) attachTagsToSets(sets []models.Set) {
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing set tags rows: %v", err)
+		}
+	}()
 
 	for rows.Next() {
 		var setID int64
@@ -5102,7 +5110,11 @@ func (s *Server) attachTagsToCollectionItems(items []models.CollectionItem) {
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing collection item tags rows: %v", err)
+		}
+	}()
 
 	for rows.Next() {
 		var itemID int64

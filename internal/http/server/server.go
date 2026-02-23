@@ -4457,7 +4457,11 @@ func (s *Server) getSetsByBrandID(brandID int64) []models.Set {
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing sets by brand id rows: %v", err)
+		}
+	}()
 
 	var sets []models.Set
 	for rows.Next() {
@@ -4532,7 +4536,11 @@ func (s *Server) getFilteredSets(search, theme string, tags []string, brandID in
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing filtered sets rows: %v", err)
+		}
+	}()
 
 	var sets []models.Set
 	for rows.Next() {
@@ -4602,7 +4610,11 @@ func (s *Server) getFilteredCollectionItems(status, condition string, tags []str
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing filtered collection rows: %v", err)
+		}
+	}()
 
 	var items []models.CollectionItem
 	for rows.Next() {

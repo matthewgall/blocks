@@ -5151,7 +5151,11 @@ func (s *Server) attachImagesToCollectionItems(items []models.CollectionItem) {
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing collection item images rows: %v", err)
+		}
+	}()
 
 	for rows.Next() {
 		var image models.CollectionItemImage
@@ -5180,7 +5184,11 @@ func (s *Server) getTagsForSetID(setID int64) []string {
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing set tags rows: %v", err)
+		}
+	}()
 
 	var tags []string
 	for rows.Next() {
@@ -5205,7 +5213,11 @@ func (s *Server) getTagsForCollectionItemID(itemID int64) []string {
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing collection item tags rows: %v", err)
+		}
+	}()
 
 	var tags []string
 	for rows.Next() {

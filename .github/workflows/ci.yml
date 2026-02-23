@@ -90,7 +90,7 @@ jobs:
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
-        name: blocks-${{ github.sha }}
+        name: blocks-${{ github.sha }}-go${{ matrix.go-version }}
         path: ./blocks
 
     - name: Build Docker image

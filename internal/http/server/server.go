@@ -2291,13 +2291,13 @@ func (s *Server) saveCollectionItemImages(ctx context.Context, itemID int64, fil
 			itemID, key, contentType,
 		); err != nil {
 			cleanupStoredImages(ctx, s.uploads, storedKeys)
-			return fmt.Errorf("Unable to save image")
+			return fmt.Errorf("unable to save image")
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
 		cleanupStoredImages(ctx, s.uploads, storedKeys)
-		return fmt.Errorf("Unable to save images")
+		return fmt.Errorf("unable to save images")
 	}
 
 	return nil
@@ -4207,7 +4207,11 @@ func (s *Server) getRecentCollectionItems() []models.CollectionItem {
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing recent collection rows: %v", err)
+		}
+	}()
 
 	var items []models.CollectionItem
 	for rows.Next() {
@@ -4248,7 +4252,11 @@ func (s *Server) getCollectionThemeInsights() []dashboardInsight {
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing theme insight rows: %v", err)
+		}
+	}()
 
 	var labels []string
 	var counts []int
@@ -4278,7 +4286,11 @@ func (s *Server) getCollectionTagInsights() []dashboardInsight {
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing tag insight rows: %v", err)
+		}
+	}()
 
 	var labels []string
 	var counts []int

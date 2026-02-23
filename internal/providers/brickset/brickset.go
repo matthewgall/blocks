@@ -224,7 +224,9 @@ func (c *Client) makeRequest(ctx context.Context, method string, request interfa
 	if err != nil {
 		return nil, fmt.Errorf("making request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)

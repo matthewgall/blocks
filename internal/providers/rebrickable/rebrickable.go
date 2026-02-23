@@ -81,7 +81,9 @@ func (c *Client) GetSetByNumber(ctx context.Context, setNumber string) (*Rebrick
 	if err != nil {
 		return nil, fmt.Errorf("making request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, fmt.Errorf("set not found: %s", setNumber)
@@ -133,7 +135,9 @@ func (c *Client) SearchSets(ctx context.Context, query string) ([]RebrickableSet
 	if err != nil {
 		return nil, fmt.Errorf("making request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)

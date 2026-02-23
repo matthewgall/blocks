@@ -384,6 +384,36 @@ func clientIP(r *http.Request) string {
 	return strings.TrimSpace(r.RemoteAddr)
 }
 
+func requestBaseURL(r *http.Request) string {
+	if r == nil {
+		return ""
+	}
+	proto := strings.TrimSpace(r.Header.Get("X-Forwarded-Proto"))
+	if proto != "" {
+		parts := strings.Split(proto, ",")
+		proto = strings.ToLower(strings.TrimSpace(parts[0]))
+	}
+	if proto == "" {
+		if r.TLS != nil {
+			proto = "https"
+		} else {
+			proto = "http"
+		}
+	}
+	host := strings.TrimSpace(r.Header.Get("X-Forwarded-Host"))
+	if host != "" {
+		parts := strings.Split(host, ",")
+		host = strings.TrimSpace(parts[0])
+	}
+	if host == "" {
+		host = strings.TrimSpace(r.Host)
+	}
+	if host == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s://%s", proto, host)
+}
+
 func csrfTokenFromContext(r *http.Request) string {
 	value := r.Context().Value(csrfContextKey)
 	if token, ok := value.(string); ok {
@@ -781,7 +811,8 @@ func (s *Server) setupRoutes() {
 	s.router.Get("/profile", s.handleProfilePage)
 	s.router.Post("/profile/password", s.handleProfilePassword)
 	s.router.Post("/profile/disable", s.handleProfileDisable)
-	s.router.Post("/profile/collection-visibility", s.handleProfileCollectionVisibility)
+	s.router.Post("/profile/name", s.handleProfileName)
+	s.router.Post("/profile/public-profile", s.handleProfilePublicProfileVisibility)
 	s.router.Post("/profile/api-tokens", s.handleProfileAPITokenCreate)
 	s.router.Post("/profile/api-tokens/{id}/revoke", s.handleProfileAPITokenRevoke)
 	s.router.Post("/profile/api-tokens/clear-warning", s.handleDismissAPITokensWarning)
@@ -801,7 +832,7 @@ func (s *Server) setupRoutes() {
 	s.router.Get("/collection/new", s.handleCollectionForm)
 	s.router.Get("/collection/{id}/edit", s.handleCollectionForm)
 	s.router.Get("/collection", s.handleCollectionPage)
-	s.router.Get("/u/{username}/collection", s.handlePublicCollectionPage)
+	s.router.Get("/u/{username}", s.handlePublicProfilePage)
 	s.router.Post("/collection", s.handleCreateCollectionForm)
 	s.router.Post("/collection/{id}/update", s.handleUpdateCollectionForm)
 	s.router.Post("/collection/{id}/delete", s.handleDeleteCollectionForm)
@@ -897,6 +928,32 @@ type collectionImageView struct {
 	Status    models.ItemStatus
 }
 
+type publicCollectionSummary struct {
+	UniqueSets     int
+	TotalItems     int
+	ActiveItems    int
+	SoldItems      int
+	DonatedItems   int
+	ActivePercent  int
+	SoldPercent    int
+	DonatedPercent int
+	AvgItemsPerSet float64
+	LastUpdated    *time.Time
+}
+
+type publicCollectionItem struct {
+	SetCode   string
+	Name      string
+	Quantity  int
+	Condition models.ItemCondition
+	Status    models.ItemStatus
+	CreatedAt time.Time
+}
+
+type publicCollectionImage struct {
+	URL string
+}
+
 func (s *Server) renderTemplate(w http.ResponseWriter, r *http.Request, tmplName string, data interface{}) {
 	w.Header().Set("Content-Type", "text/html")
 
@@ -930,7 +987,7 @@ func (s *Server) renderTemplate(w http.ResponseWriter, r *http.Request, tmplName
 		}
 	}
 
-	if tmplName != "login.html" && tmplName != "error.html" && tmplName != "setup.html" && tmplName != "public_collection.html" && !loggedIn {
+	if tmplName != "login.html" && tmplName != "error.html" && tmplName != "setup.html" && tmplName != "public_collection.html" && tmplName != "public_profile.html" && !loggedIn {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
@@ -1787,31 +1844,45 @@ func (s *Server) handleProfilePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := s.profileData(user)
+	data := s.profileData(r, user)
 	addFlashFromQuery(r, data)
 
 	s.renderTemplate(w, r, "profile.html", data)
 }
 
-func (s *Server) profileData(user *auth.Claims) map[string]interface{} {
-	publicCollectionEnabled := false
-	if enabled, err := s.getUserPublicCollectionEnabled(user.UserID); err != nil {
-		log.Printf("profile public collection flag lookup failed: %v", err)
+func (s *Server) profileData(r *http.Request, user *auth.Claims) map[string]interface{} {
+	var displayName *string
+	publicProfileEnabled := false
+	if profile, err := s.getUserByID(user.UserID); err != nil {
+		log.Printf("profile lookup failed: %v", err)
 	} else {
-		publicCollectionEnabled = enabled
+		displayName = profile.DisplayName
+		publicProfileEnabled = profile.PublicCollectionEnabled
+	}
+	publicName := user.Username
+	if displayName != nil && strings.TrimSpace(*displayName) != "" {
+		publicName = strings.TrimSpace(*displayName)
+	}
+	publicProfilePath := fmt.Sprintf("/u/%s", url.PathEscape(user.Username))
+	baseURL := requestBaseURL(r)
+	publicProfileURL := publicProfilePath
+	if baseURL != "" {
+		publicProfileURL = baseURL + publicProfilePath
 	}
 	data := map[string]interface{}{
-		"Title":                   "Profile",
-		"Username":                user.Username,
-		"Role":                    normalizeRole(user.Role),
-		"APITokens":               s.listUserAPITokens(user.UserID),
-		"PublicCollectionEnabled": publicCollectionEnabled,
-		"PublicCollectionPath":    fmt.Sprintf("/u/%s/collection", url.PathEscape(user.Username)),
+		"Title":                "Profile",
+		"Username":             user.Username,
+		"Role":                 normalizeRole(user.Role),
+		"APITokens":            s.listUserAPITokens(user.UserID),
+		"DisplayName":          displayName,
+		"PublicName":           publicName,
+		"PublicProfileEnabled": publicProfileEnabled,
+		"PublicProfilePath":    publicProfileURL,
 	}
 	return data
 }
 
-func (s *Server) handleProfileCollectionVisibility(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleProfileName(w http.ResponseWriter, r *http.Request) {
 	user, ok := currentUser(r)
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -1822,20 +1893,47 @@ func (s *Server) handleProfileCollectionVisibility(w http.ResponseWriter, r *htt
 		return
 	}
 
-	enabled := strings.TrimSpace(r.FormValue("public_collection")) != ""
+	name := parseOptionalString(r.FormValue("display_name"))
+	if name != nil {
+		trimmed := strings.TrimSpace(*name)
+		if trimmed == "" {
+			name = nil
+		} else {
+			name = &trimmed
+		}
+	}
+	if _, err := s.db.Conn().Exec("UPDATE users SET display_name = ? WHERE id = ?", name, user.UserID); err != nil {
+		redirectWithError(w, r, "/profile", "Unable to update display name.")
+		return
+	}
+	redirectWithMessage(w, r, "/profile", "Display name updated.")
+}
+
+func (s *Server) handleProfilePublicProfileVisibility(w http.ResponseWriter, r *http.Request) {
+	user, ok := currentUser(r)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		redirectWithError(w, r, "/profile", "Invalid form submission.")
+		return
+	}
+
+	enabled := strings.TrimSpace(r.FormValue("public_profile")) != ""
 	value := 0
 	if enabled {
 		value = 1
 	}
 	if _, err := s.db.Conn().Exec("UPDATE users SET public_collection_enabled = ? WHERE id = ?", value, user.UserID); err != nil {
-		redirectWithError(w, r, "/profile", "Unable to update public collection setting.")
+		redirectWithError(w, r, "/profile", "Unable to update public profile setting.")
 		return
 	}
 	if enabled {
-		redirectWithMessage(w, r, "/profile", "Public collection enabled.")
+		redirectWithMessage(w, r, "/profile", "Public profile enabled.")
 		return
 	}
-	redirectWithMessage(w, r, "/profile", "Public collection disabled.")
+	redirectWithMessage(w, r, "/profile", "Public profile disabled.")
 }
 
 func (s *Server) handleProfileAPITokenCreate(w http.ResponseWriter, r *http.Request) {
@@ -1845,7 +1943,7 @@ func (s *Server) handleProfileAPITokenCreate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		data := s.profileData(user)
+		data := s.profileData(r, user)
 		data["Error"] = "Invalid form submission."
 		s.renderTemplate(w, r, "profile.html", data)
 		return
@@ -1857,13 +1955,13 @@ func (s *Server) handleProfileAPITokenCreate(w http.ResponseWriter, r *http.Requ
 		scope = apiTokenScopeRead
 	}
 	if scope != apiTokenScopeRead && scope != apiTokenScopeWrite && scope != apiTokenScopeAdmin {
-		data := s.profileData(user)
+		data := s.profileData(r, user)
 		data["Error"] = "Invalid API token scope."
 		s.renderTemplate(w, r, "profile.html", data)
 		return
 	}
 	if scope == apiTokenScopeAdmin && normalizeRole(user.Role) != models.RoleAdmin {
-		data := s.profileData(user)
+		data := s.profileData(r, user)
 		data["Error"] = "Admin scope requires an admin role."
 		s.renderTemplate(w, r, "profile.html", data)
 		return
@@ -1871,7 +1969,7 @@ func (s *Server) handleProfileAPITokenCreate(w http.ResponseWriter, r *http.Requ
 
 	token, err := s.createAPIToken(user.UserID, name, scope)
 	if err != nil {
-		data := s.profileData(user)
+		data := s.profileData(r, user)
 		data["Error"] = "Unable to create API token right now."
 		s.renderTemplate(w, r, "profile.html", data)
 		return
@@ -1879,7 +1977,7 @@ func (s *Server) handleProfileAPITokenCreate(w http.ResponseWriter, r *http.Requ
 
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
-	data := s.profileData(user)
+	data := s.profileData(r, user)
 	data["Message"] = "API token created. Copy it now."
 	data["NewAPIToken"] = token
 	data["NewAPITokenScope"] = scope
@@ -2732,7 +2830,7 @@ func (s *Server) handleProfilePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := r.ParseForm(); err != nil {
-		data := s.profileData(user)
+		data := s.profileData(r, user)
 		data["Error"] = "Invalid form submission."
 		s.renderTemplate(w, r, "profile.html", data)
 		return
@@ -2742,19 +2840,19 @@ func (s *Server) handleProfilePassword(w http.ResponseWriter, r *http.Request) {
 	newPassword := r.FormValue("new_password")
 	confirmPassword := r.FormValue("confirm_password")
 	if newPassword == "" || confirmPassword == "" {
-		data := s.profileData(user)
+		data := s.profileData(r, user)
 		data["Error"] = "New password fields are required."
 		s.renderTemplate(w, r, "profile.html", data)
 		return
 	}
 	if newPassword != confirmPassword {
-		data := s.profileData(user)
+		data := s.profileData(r, user)
 		data["Error"] = "New passwords do not match."
 		s.renderTemplate(w, r, "profile.html", data)
 		return
 	}
 	if errMsg := s.passwordPolicyError(newPassword, user.Username); errMsg != "" {
-		data := s.profileData(user)
+		data := s.profileData(r, user)
 		data["Error"] = errMsg
 		s.renderTemplate(w, r, "profile.html", data)
 		return
@@ -2763,14 +2861,14 @@ func (s *Server) handleProfilePassword(w http.ResponseWriter, r *http.Request) {
 	var passwordHash string
 	err := s.db.Conn().QueryRow("SELECT password_hash FROM users WHERE id = ?", user.UserID).Scan(&passwordHash)
 	if err != nil {
-		data := s.profileData(user)
+		data := s.profileData(r, user)
 		data["Error"] = "Unable to update password right now."
 		s.renderTemplate(w, r, "profile.html", data)
 		return
 	}
 
 	if err := s.auth.CheckPassword(currentPassword, passwordHash); err != nil {
-		data := s.profileData(user)
+		data := s.profileData(r, user)
 		data["Error"] = "Current password is incorrect."
 		s.renderTemplate(w, r, "profile.html", data)
 		return
@@ -2778,20 +2876,20 @@ func (s *Server) handleProfilePassword(w http.ResponseWriter, r *http.Request) {
 
 	newHash, err := s.hashPassword(newPassword)
 	if err != nil {
-		data := s.profileData(user)
+		data := s.profileData(r, user)
 		data["Error"] = "Unable to update password right now."
 		s.renderTemplate(w, r, "profile.html", data)
 		return
 	}
 
 	if _, err := s.db.Conn().Exec("UPDATE users SET password_hash = ? WHERE id = ?", newHash, user.UserID); err != nil {
-		data := s.profileData(user)
+		data := s.profileData(r, user)
 		data["Error"] = "Unable to update password right now."
 		s.renderTemplate(w, r, "profile.html", data)
 		return
 	}
 
-	data := s.profileData(user)
+	data := s.profileData(r, user)
 	data["Message"] = "Password updated successfully."
 	s.renderTemplate(w, r, "profile.html", data)
 }
@@ -2804,7 +2902,7 @@ func (s *Server) handleProfileDisable(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.disableUser(user.UserID); err != nil {
-		data := s.profileData(user)
+		data := s.profileData(r, user)
 		data["Error"] = "Unable to disable your account right now."
 		s.renderTemplate(w, r, "profile.html", data)
 		return
@@ -3215,36 +3313,36 @@ func (s *Server) handleCollectionPage(w http.ResponseWriter, r *http.Request) {
 	s.renderTemplate(w, r, "collection.html", data)
 }
 
-func (s *Server) handlePublicCollectionPage(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handlePublicProfilePage(w http.ResponseWriter, r *http.Request) {
 	username := strings.TrimSpace(chi.URLParam(r, "username"))
 	if username == "" {
-		s.renderError(w, r, http.StatusNotFound, "Collection Not Found", "We couldn't find that collection.")
+		s.renderError(w, r, http.StatusNotFound, "Profile Not Found", "We couldn't find that profile.")
 		return
 	}
 	user, err := s.getUserByUsername(username)
 	if err != nil || user.DisabledAt != nil || !user.PublicCollectionEnabled {
-		s.renderError(w, r, http.StatusNotFound, "Collection Not Found", "We couldn't find that collection.")
+		s.renderError(w, r, http.StatusNotFound, "Profile Not Found", "We couldn't find that profile.")
 		return
 	}
-
-	status := strings.TrimSpace(r.URL.Query().Get("status"))
-	condition := strings.TrimSpace(r.URL.Query().Get("condition"))
-	tagsInput := strings.TrimSpace(r.URL.Query().Get("tags"))
-	filterTags := parseTagInput(tagsInput)
-
-	filtered := s.getFilteredCollectionItems(status, condition, filterTags)
+	publicName := user.Username
+	if user.DisplayName != nil && strings.TrimSpace(*user.DisplayName) != "" {
+		publicName = strings.TrimSpace(*user.DisplayName)
+	}
+	summary := s.getPublicCollectionSummary()
+	recentItems := s.getRecentPublicCollectionItems(4)
+	collectionImages := s.getPublicCollectionImages(12)
 
 	data := map[string]interface{}{
-		"Title":          fmt.Sprintf("%s's Collection", user.Username),
-		"Items":          filtered,
-		"Status":         status,
-		"Condition":      condition,
-		"TagInput":       tagsInput,
-		"PublicUsername": user.Username,
+		"Title":                 fmt.Sprintf("%s's Profile", publicName),
+		"PublicName":            publicName,
+		"PublicUsername":        user.Username,
+		"CollectionSummary":     summary,
+		"RecentCollectionItems": recentItems,
+		"CollectionImages":      collectionImages,
 	}
 	addFlashFromQuery(r, data)
 
-	s.renderTemplate(w, r, "public_collection.html", data)
+	s.renderTemplate(w, r, "public_profile.html", data)
 }
 
 func (s *Server) handleCreateBrandForm(w http.ResponseWriter, r *http.Request) {
@@ -4782,7 +4880,8 @@ var rolePolicies = map[string][]models.UserRole{
 	"GET /profile":                                       {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
 	"POST /profile/password":                             {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
 	"POST /profile/disable":                              {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
-	"POST /profile/collection-visibility":                {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
+	"POST /profile/name":                                 {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
+	"POST /profile/public-profile":                       {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
 	"POST /profile/api-tokens":                           {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
 	"POST /profile/api-tokens/{id}/revoke":               {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
 	"POST /profile/api-tokens/clear-warning":             {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
@@ -5368,7 +5467,7 @@ func (s *Server) hashPassword(password string) (string, error) {
 }
 
 func (s *Server) listUsers() []models.User {
-	rows, err := s.db.Conn().Query("SELECT id, username, role, public_collection_enabled, disabled_at, created_at FROM users ORDER BY username")
+	rows, err := s.db.Conn().Query("SELECT id, username, display_name, role, public_collection_enabled, disabled_at, created_at FROM users ORDER BY username")
 	if err != nil {
 		return nil
 	}
@@ -5381,7 +5480,7 @@ func (s *Server) listUsers() []models.User {
 	var users []models.User
 	for rows.Next() {
 		var user models.User
-		if err := rows.Scan(&user.ID, &user.Username, &user.Role, &user.PublicCollectionEnabled, &user.DisabledAt, &user.CreatedAt); err != nil {
+		if err := rows.Scan(&user.ID, &user.Username, &user.DisplayName, &user.Role, &user.PublicCollectionEnabled, &user.DisabledAt, &user.CreatedAt); err != nil {
 			continue
 		}
 		users = append(users, user)
@@ -5480,9 +5579,10 @@ func (s *Server) createAPIToken(userID int64, name, scope string) (string, error
 
 func (s *Server) getUserByID(id int64) (*models.User, error) {
 	var user models.User
-	err := s.db.Conn().QueryRow("SELECT id, username, role, public_collection_enabled, disabled_at, created_at FROM users WHERE id = ?", id).Scan(
+	err := s.db.Conn().QueryRow("SELECT id, username, display_name, role, public_collection_enabled, disabled_at, created_at FROM users WHERE id = ?", id).Scan(
 		&user.ID,
 		&user.Username,
+		&user.DisplayName,
 		&user.Role,
 		&user.PublicCollectionEnabled,
 		&user.DisabledAt,
@@ -5496,9 +5596,10 @@ func (s *Server) getUserByID(id int64) (*models.User, error) {
 
 func (s *Server) getUserByUsername(username string) (*models.User, error) {
 	var user models.User
-	err := s.db.Conn().QueryRow("SELECT id, username, role, public_collection_enabled, disabled_at, created_at FROM users WHERE username = ?", username).Scan(
+	err := s.db.Conn().QueryRow("SELECT id, username, display_name, role, public_collection_enabled, disabled_at, created_at FROM users WHERE username = ?", username).Scan(
 		&user.ID,
 		&user.Username,
+		&user.DisplayName,
 		&user.Role,
 		&user.PublicCollectionEnabled,
 		&user.DisabledAt,
@@ -5510,13 +5611,104 @@ func (s *Server) getUserByUsername(username string) (*models.User, error) {
 	return &user, nil
 }
 
-func (s *Server) getUserPublicCollectionEnabled(userID int64) (bool, error) {
-	var enabled bool
-	err := s.db.Conn().QueryRow("SELECT public_collection_enabled FROM users WHERE id = ?", userID).Scan(&enabled)
+func (s *Server) getPublicCollectionSummary() publicCollectionSummary {
+	var summary publicCollectionSummary
+	var lastUpdated sql.NullTime
+	err := s.db.Conn().QueryRow(`
+		SELECT
+			COUNT(DISTINCT set_id) AS unique_sets,
+			COALESCE(SUM(quantity), 0) AS total_items,
+			COALESCE(SUM(CASE WHEN status = 'active' THEN quantity ELSE 0 END), 0) AS active_items,
+			COALESCE(SUM(CASE WHEN status = 'sold' THEN quantity ELSE 0 END), 0) AS sold_items,
+			COALESCE(SUM(CASE WHEN status = 'donated' THEN quantity ELSE 0 END), 0) AS donated_items,
+			MAX(updated_at) AS last_updated
+		FROM collection_items
+	`).Scan(
+		&summary.UniqueSets,
+		&summary.TotalItems,
+		&summary.ActiveItems,
+		&summary.SoldItems,
+		&summary.DonatedItems,
+		&lastUpdated,
+	)
 	if err != nil {
-		return false, err
+		return summary
 	}
-	return enabled, nil
+	if summary.TotalItems > 0 {
+		summary.ActivePercent = int(math.Round(float64(summary.ActiveItems) / float64(summary.TotalItems) * 100))
+		summary.SoldPercent = int(math.Round(float64(summary.SoldItems) / float64(summary.TotalItems) * 100))
+		summary.DonatedPercent = int(math.Round(float64(summary.DonatedItems) / float64(summary.TotalItems) * 100))
+	}
+	if summary.UniqueSets > 0 {
+		summary.AvgItemsPerSet = float64(summary.TotalItems) / float64(summary.UniqueSets)
+	}
+	if lastUpdated.Valid {
+		summary.LastUpdated = &lastUpdated.Time
+	}
+	return summary
+}
+
+func (s *Server) getRecentPublicCollectionItems(limit int) []publicCollectionItem {
+	if limit <= 0 {
+		return nil
+	}
+	rows, err := s.db.Conn().Query(`
+		SELECT ci.quantity, ci.condition, ci.status, ci.created_at, s.set_code, s.name
+		FROM collection_items ci
+		JOIN sets s ON s.id = ci.set_id
+		ORDER BY ci.created_at DESC
+		LIMIT ?
+	`, limit)
+	if err != nil {
+		return nil
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing public collection rows: %v", err)
+		}
+	}()
+
+	var items []publicCollectionItem
+	for rows.Next() {
+		var item publicCollectionItem
+		if err := rows.Scan(&item.Quantity, &item.Condition, &item.Status, &item.CreatedAt, &item.SetCode, &item.Name); err != nil {
+			continue
+		}
+		items = append(items, item)
+	}
+	return items
+}
+
+func (s *Server) getPublicCollectionImages(limit int) []publicCollectionImage {
+	if limit <= 0 {
+		return nil
+	}
+	rows, err := s.db.Conn().Query(`
+		SELECT s.image_url
+		FROM collection_items ci
+		JOIN sets s ON s.id = ci.set_id
+		WHERE s.image_url IS NOT NULL AND s.image_url != ''
+		ORDER BY ci.created_at DESC
+		LIMIT ?
+	`, limit)
+	if err != nil {
+		return nil
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing public collection images rows: %v", err)
+		}
+	}()
+
+	var images []publicCollectionImage
+	for rows.Next() {
+		var image publicCollectionImage
+		if err := rows.Scan(&image.URL); err != nil {
+			continue
+		}
+		images = append(images, image)
+	}
+	return images
 }
 
 func (s *Server) redirectAdminUsersError(w http.ResponseWriter, r *http.Request, message string) {

@@ -31,24 +31,39 @@
     </div>
 
     <div class="card card-section">
-        <h2>Public Collection</h2>
-        <p class="text-muted mt-0-25">Share a read-only view of your collection with anyone who has the link.</p>
-        <form method="post" action="/profile/collection-visibility" class="mt-1">
+        <h2>Display Name</h2>
+        <p class="text-muted mt-0-25">This name is shown on your public profile.</p>
+        <form method="post" action="/profile/name" class="mt-1">
             {{template "csrf_input" .}}
             <div class="form-group">
-                <label for="public_collection">
-                    <input type="checkbox" id="public_collection" name="public_collection" value="1" {{if .PublicCollectionEnabled}}checked{{end}}>
-                    Enable public collection view
+                <label for="display_name">Name</label>
+                <input type="text" id="display_name" name="display_name" value="{{value .DisplayName}}" placeholder="e.g. Alex Builder">
+            </div>
+            <div class="actions mt-1">
+                <button type="submit" class="btn btn-secondary">Save</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card card-section">
+        <h2>Public Profile</h2>
+        <p class="text-muted mt-0-25">Your public profile shows <strong>{{.PublicName}}</strong>.</p>
+        <form method="post" action="/profile/public-profile" class="mt-1">
+            {{template "csrf_input" .}}
+            <div class="form-group">
+                <label for="public_profile">
+                    <input type="checkbox" id="public_profile" name="public_profile" value="1" {{if .PublicProfileEnabled}}checked{{end}}>
+                    Enable public profile
                 </label>
             </div>
             <div class="actions mt-1">
                 <button type="submit" class="btn btn-secondary">Save</button>
             </div>
         </form>
-        {{if .PublicCollectionEnabled}}
+        {{if .PublicProfileEnabled}}
         <div class="card card-muted mt-1">
-            <strong>Public link</strong>
-            <p class="text-muted mt-0-25"><code>{{.PublicCollectionPath}}</code></p>
+            <strong>Profile link</strong>
+            <p class="text-muted mt-0-25"><code>{{.PublicProfilePath}}</code></p>
         </div>
         {{end}}
     </div>

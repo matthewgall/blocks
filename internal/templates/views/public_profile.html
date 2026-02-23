@@ -1,0 +1,114 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="public-profile-hero public-profile-animated">
+    <div class="public-profile-hero-inner">
+        <div class="public-profile-hero-text">
+            <span class="public-profile-pill">Public profile</span>
+            <h1>{{.PublicName}}</h1>
+            <p>@{{.PublicUsername}}</p>
+        </div>
+        <div class="public-profile-hero-meta">
+            {{with .CollectionSummary}}
+            <div class="public-profile-stat">
+                <div>Total items</div>
+                <strong>{{.TotalItems}}</strong>
+            </div>
+            <div class="public-profile-stat">
+                <div>Unique sets</div>
+                <strong>{{.UniqueSets}}</strong>
+            </div>
+            <div class="public-profile-stat">
+                <div>Active items</div>
+                <strong>{{.ActiveItems}}</strong>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</div>
+
+<div class="grid mt-1 public-profile-animated">
+    <div class="card card-section public-profile-stats-card">
+        <h2>Collection Stats</h2>
+        {{with .CollectionSummary}}
+        {{if $.CollectionImages}}
+        <div class="public-profile-mosaic" aria-hidden="true">
+            {{range $.CollectionImages}}
+            <img src="{{.URL}}" alt="" loading="lazy" decoding="async">
+            {{end}}
+        </div>
+        {{end}}
+        <div class="public-profile-stats-grid mt-0-5">
+            <div class="public-profile-stat-card stat-total">
+                <div class="public-profile-stat-ring" style="--ring: 100"></div>
+                <div>
+                    <div class="public-profile-stat-label">Total items</div>
+                    <div class="public-profile-stat-value">{{.TotalItems}}</div>
+                </div>
+            </div>
+            <div class="public-profile-stat-card stat-unique">
+                <div class="public-profile-stat-ring" style="--ring: 100"></div>
+                <div>
+                    <div class="public-profile-stat-label">Unique sets</div>
+                    <div class="public-profile-stat-value">{{.UniqueSets}}</div>
+                </div>
+            </div>
+            <div class="public-profile-stat-card stat-avg">
+                <div class="public-profile-stat-ring" style="--ring: 75"></div>
+                <div>
+                    <div class="public-profile-stat-label">Avg items / set</div>
+                    <div class="public-profile-stat-value">{{printf "%.1f" .AvgItemsPerSet}}</div>
+                </div>
+            </div>
+            <div class="public-profile-stat-card stat-active">
+                <div class="public-profile-stat-ring" style="--ring: {{.ActivePercent}}"></div>
+                <div>
+                    <div class="public-profile-stat-label">Active</div>
+                    <div class="public-profile-stat-value">{{.ActiveItems}}</div>
+                    <span class="public-profile-stat-pill">{{.ActivePercent}}%</span>
+                </div>
+            </div>
+            <div class="public-profile-stat-card stat-sold">
+                <div class="public-profile-stat-ring" style="--ring: {{.SoldPercent}}"></div>
+                <div>
+                    <div class="public-profile-stat-label">Sold</div>
+                    <div class="public-profile-stat-value">{{.SoldItems}}</div>
+                    <span class="public-profile-stat-pill">{{.SoldPercent}}%</span>
+                </div>
+            </div>
+            <div class="public-profile-stat-card stat-donated">
+                <div class="public-profile-stat-ring" style="--ring: {{.DonatedPercent}}"></div>
+                <div>
+                    <div class="public-profile-stat-label">Donated</div>
+                    <div class="public-profile-stat-value">{{.DonatedItems}}</div>
+                    <span class="public-profile-stat-pill">{{.DonatedPercent}}%</span>
+                </div>
+            </div>
+        </div>
+        {{if .LastUpdated}}
+        <p class="text-muted mt-0-5">Updated {{formatDate .LastUpdated}}</p>
+        {{end}}
+        {{end}}
+    </div>
+    <div class="card card-section">
+        <h2>Recent Additions</h2>
+        {{if .RecentCollectionItems}}
+        <div class="grid">
+            {{range .RecentCollectionItems}}
+            <div class="card card-muted">
+                <div><strong>{{.Name}}</strong></div>
+                <div class="text-muted">{{.SetCode}}</div>
+                <div class="mt-0-5">
+                    <span class="badge badge-{{.Condition}}">{{.Condition}}</span>
+                    <span class="badge badge-{{.Status}}">{{.Status}}</span>
+                    <span class="badge badge-neutral">x{{.Quantity}}</span>
+                </div>
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <p class="text-muted mt-0-25">No collection items yet.</p>
+        {{end}}
+    </div>
+</div>
+{{end}}

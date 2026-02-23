@@ -206,6 +206,7 @@ type ExternalCache struct {
 type User struct {
 	ID                      int64      `json:"id" db:"id"`
 	Username                string     `json:"username" db:"username"`
+	DisplayName             *string    `json:"display_name,omitempty" db:"display_name"`
 	PasswordHash            string     `json:"-" db:"password_hash"`
 	Role                    UserRole   `json:"role" db:"role"`
 	PublicCollectionEnabled bool       `json:"public_collection_enabled" db:"public_collection_enabled"`

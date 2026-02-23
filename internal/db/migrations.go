@@ -26,6 +26,7 @@ var migrations = []migration{
 	{version: 16, name: "drop_barcodes", sql: dropBarcodes},
 	{version: 17, name: "app_settings", sql: appSettingsTable},
 	{version: 18, name: "users_public_collection", sql: usersPublicCollection},
+	{version: 19, name: "users_display_name", sql: usersDisplayName},
 }
 
 func validateMigrations() error {
@@ -219,6 +220,7 @@ const usersTable = `
 CREATE TABLE IF NOT EXISTS users (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	username TEXT UNIQUE NOT NULL,
+	display_name TEXT,
 	password_hash TEXT NOT NULL,
 	role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('admin', 'editor', 'viewer')),
 	disabled_at DATETIME,
@@ -230,6 +232,10 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
 const usersPublicCollection = `
 ALTER TABLE users ADD COLUMN public_collection_enabled INTEGER NOT NULL DEFAULT 0;
+`
+
+const usersDisplayName = `
+ALTER TABLE users ADD COLUMN display_name TEXT;
 `
 
 const collectionItemImagesTable = `

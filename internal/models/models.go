@@ -204,10 +204,11 @@ type ExternalCache struct {
 }
 
 type User struct {
-	ID           int64      `json:"id" db:"id"`
-	Username     string     `json:"username" db:"username"`
-	PasswordHash string     `json:"-" db:"password_hash"`
-	Role         UserRole   `json:"role" db:"role"`
-	DisabledAt   *time.Time `json:"disabled_at,omitempty" db:"disabled_at"`
-	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
+	ID                      int64      `json:"id" db:"id"`
+	Username                string     `json:"username" db:"username"`
+	PasswordHash            string     `json:"-" db:"password_hash"`
+	Role                    UserRole   `json:"role" db:"role"`
+	PublicCollectionEnabled bool       `json:"public_collection_enabled" db:"public_collection_enabled"`
+	DisabledAt              *time.Time `json:"disabled_at,omitempty" db:"disabled_at"`
+	CreatedAt               time.Time  `json:"created_at" db:"created_at"`
 }

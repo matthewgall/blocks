@@ -31,6 +31,29 @@
     </div>
 
     <div class="card card-section">
+        <h2>Public Collection</h2>
+        <p class="text-muted mt-0-25">Share a read-only view of your collection with anyone who has the link.</p>
+        <form method="post" action="/profile/collection-visibility" class="mt-1">
+            {{template "csrf_input" .}}
+            <div class="form-group">
+                <label for="public_collection">
+                    <input type="checkbox" id="public_collection" name="public_collection" value="1" {{if .PublicCollectionEnabled}}checked{{end}}>
+                    Enable public collection view
+                </label>
+            </div>
+            <div class="actions mt-1">
+                <button type="submit" class="btn btn-secondary">Save</button>
+            </div>
+        </form>
+        {{if .PublicCollectionEnabled}}
+        <div class="card card-muted mt-1">
+            <strong>Public link</strong>
+            <p class="text-muted mt-0-25"><code>{{.PublicCollectionPath}}</code></p>
+        </div>
+        {{end}}
+    </div>
+
+    <div class="card card-section">
         <h2>Disable Account</h2>
         <p class="text-muted mt-0-5">This will sign you out and disable your account until an admin re-enables it.</p>
         <form method="post" action="/profile/disable" class="mt-1" data-confirm-title="Disable account" data-confirm-message="Disable your account? You will be signed out until an admin re-enables it.">

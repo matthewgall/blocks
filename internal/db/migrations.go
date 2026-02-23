@@ -25,6 +25,7 @@ var migrations = []migration{
 	{version: 15, name: "index_optimizations", sql: indexOptimizations},
 	{version: 16, name: "drop_barcodes", sql: dropBarcodes},
 	{version: 17, name: "app_settings", sql: appSettingsTable},
+	{version: 18, name: "users_public_collection", sql: usersPublicCollection},
 }
 
 func validateMigrations() error {
@@ -225,6 +226,10 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+`
+
+const usersPublicCollection = `
+ALTER TABLE users ADD COLUMN public_collection_enabled INTEGER NOT NULL DEFAULT 0;
 `
 
 const collectionItemImagesTable = `

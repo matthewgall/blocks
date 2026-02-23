@@ -596,6 +596,9 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		if isSetupPath {
 			isPublic = true
 		}
+		if strings.HasPrefix(r.URL.Path, "/u/") {
+			isPublic = true
+		}
 
 		if isAPI && !isPublic {
 			if token := bearerTokenFromRequest(r); token != "" {
@@ -778,6 +781,7 @@ func (s *Server) setupRoutes() {
 	s.router.Get("/profile", s.handleProfilePage)
 	s.router.Post("/profile/password", s.handleProfilePassword)
 	s.router.Post("/profile/disable", s.handleProfileDisable)
+	s.router.Post("/profile/collection-visibility", s.handleProfileCollectionVisibility)
 	s.router.Post("/profile/api-tokens", s.handleProfileAPITokenCreate)
 	s.router.Post("/profile/api-tokens/{id}/revoke", s.handleProfileAPITokenRevoke)
 	s.router.Post("/profile/api-tokens/clear-warning", s.handleDismissAPITokensWarning)
@@ -797,6 +801,7 @@ func (s *Server) setupRoutes() {
 	s.router.Get("/collection/new", s.handleCollectionForm)
 	s.router.Get("/collection/{id}/edit", s.handleCollectionForm)
 	s.router.Get("/collection", s.handleCollectionPage)
+	s.router.Get("/u/{username}/collection", s.handlePublicCollectionPage)
 	s.router.Post("/collection", s.handleCreateCollectionForm)
 	s.router.Post("/collection/{id}/update", s.handleUpdateCollectionForm)
 	s.router.Post("/collection/{id}/delete", s.handleDeleteCollectionForm)
@@ -925,7 +930,7 @@ func (s *Server) renderTemplate(w http.ResponseWriter, r *http.Request, tmplName
 		}
 	}
 
-	if tmplName != "login.html" && tmplName != "error.html" && tmplName != "setup.html" && !loggedIn {
+	if tmplName != "login.html" && tmplName != "error.html" && tmplName != "setup.html" && tmplName != "public_collection.html" && !loggedIn {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
@@ -1789,13 +1794,48 @@ func (s *Server) handleProfilePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) profileData(user *auth.Claims) map[string]interface{} {
+	publicCollectionEnabled := false
+	if enabled, err := s.getUserPublicCollectionEnabled(user.UserID); err != nil {
+		log.Printf("profile public collection flag lookup failed: %v", err)
+	} else {
+		publicCollectionEnabled = enabled
+	}
 	data := map[string]interface{}{
-		"Title":     "Profile",
-		"Username":  user.Username,
-		"Role":      normalizeRole(user.Role),
-		"APITokens": s.listUserAPITokens(user.UserID),
+		"Title":                   "Profile",
+		"Username":                user.Username,
+		"Role":                    normalizeRole(user.Role),
+		"APITokens":               s.listUserAPITokens(user.UserID),
+		"PublicCollectionEnabled": publicCollectionEnabled,
+		"PublicCollectionPath":    fmt.Sprintf("/u/%s/collection", url.PathEscape(user.Username)),
 	}
 	return data
+}
+
+func (s *Server) handleProfileCollectionVisibility(w http.ResponseWriter, r *http.Request) {
+	user, ok := currentUser(r)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		redirectWithError(w, r, "/profile", "Invalid form submission.")
+		return
+	}
+
+	enabled := strings.TrimSpace(r.FormValue("public_collection")) != ""
+	value := 0
+	if enabled {
+		value = 1
+	}
+	if _, err := s.db.Conn().Exec("UPDATE users SET public_collection_enabled = ? WHERE id = ?", value, user.UserID); err != nil {
+		redirectWithError(w, r, "/profile", "Unable to update public collection setting.")
+		return
+	}
+	if enabled {
+		redirectWithMessage(w, r, "/profile", "Public collection enabled.")
+		return
+	}
+	redirectWithMessage(w, r, "/profile", "Public collection disabled.")
 }
 
 func (s *Server) handleProfileAPITokenCreate(w http.ResponseWriter, r *http.Request) {
@@ -3173,6 +3213,38 @@ func (s *Server) handleCollectionPage(w http.ResponseWriter, r *http.Request) {
 	addFlashFromQuery(r, data)
 
 	s.renderTemplate(w, r, "collection.html", data)
+}
+
+func (s *Server) handlePublicCollectionPage(w http.ResponseWriter, r *http.Request) {
+	username := strings.TrimSpace(chi.URLParam(r, "username"))
+	if username == "" {
+		s.renderError(w, r, http.StatusNotFound, "Collection Not Found", "We couldn't find that collection.")
+		return
+	}
+	user, err := s.getUserByUsername(username)
+	if err != nil || user.DisabledAt != nil || !user.PublicCollectionEnabled {
+		s.renderError(w, r, http.StatusNotFound, "Collection Not Found", "We couldn't find that collection.")
+		return
+	}
+
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	condition := strings.TrimSpace(r.URL.Query().Get("condition"))
+	tagsInput := strings.TrimSpace(r.URL.Query().Get("tags"))
+	filterTags := parseTagInput(tagsInput)
+
+	filtered := s.getFilteredCollectionItems(status, condition, filterTags)
+
+	data := map[string]interface{}{
+		"Title":          fmt.Sprintf("%s's Collection", user.Username),
+		"Items":          filtered,
+		"Status":         status,
+		"Condition":      condition,
+		"TagInput":       tagsInput,
+		"PublicUsername": user.Username,
+	}
+	addFlashFromQuery(r, data)
+
+	s.renderTemplate(w, r, "public_collection.html", data)
 }
 
 func (s *Server) handleCreateBrandForm(w http.ResponseWriter, r *http.Request) {
@@ -4710,6 +4782,7 @@ var rolePolicies = map[string][]models.UserRole{
 	"GET /profile":                                       {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
 	"POST /profile/password":                             {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
 	"POST /profile/disable":                              {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
+	"POST /profile/collection-visibility":                {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
 	"POST /profile/api-tokens":                           {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
 	"POST /profile/api-tokens/{id}/revoke":               {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
 	"POST /profile/api-tokens/clear-warning":             {models.RoleAdmin, models.RoleEditor, models.RoleViewer},
@@ -5295,7 +5368,7 @@ func (s *Server) hashPassword(password string) (string, error) {
 }
 
 func (s *Server) listUsers() []models.User {
-	rows, err := s.db.Conn().Query("SELECT id, username, role, disabled_at, created_at FROM users ORDER BY username")
+	rows, err := s.db.Conn().Query("SELECT id, username, role, public_collection_enabled, disabled_at, created_at FROM users ORDER BY username")
 	if err != nil {
 		return nil
 	}
@@ -5308,7 +5381,7 @@ func (s *Server) listUsers() []models.User {
 	var users []models.User
 	for rows.Next() {
 		var user models.User
-		if err := rows.Scan(&user.ID, &user.Username, &user.Role, &user.DisabledAt, &user.CreatedAt); err != nil {
+		if err := rows.Scan(&user.ID, &user.Username, &user.Role, &user.PublicCollectionEnabled, &user.DisabledAt, &user.CreatedAt); err != nil {
 			continue
 		}
 		users = append(users, user)
@@ -5407,10 +5480,11 @@ func (s *Server) createAPIToken(userID int64, name, scope string) (string, error
 
 func (s *Server) getUserByID(id int64) (*models.User, error) {
 	var user models.User
-	err := s.db.Conn().QueryRow("SELECT id, username, role, disabled_at, created_at FROM users WHERE id = ?", id).Scan(
+	err := s.db.Conn().QueryRow("SELECT id, username, role, public_collection_enabled, disabled_at, created_at FROM users WHERE id = ?", id).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Role,
+		&user.PublicCollectionEnabled,
 		&user.DisabledAt,
 		&user.CreatedAt,
 	)
@@ -5418,6 +5492,31 @@ func (s *Server) getUserByID(id int64) (*models.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (s *Server) getUserByUsername(username string) (*models.User, error) {
+	var user models.User
+	err := s.db.Conn().QueryRow("SELECT id, username, role, public_collection_enabled, disabled_at, created_at FROM users WHERE username = ?", username).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Role,
+		&user.PublicCollectionEnabled,
+		&user.DisabledAt,
+		&user.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (s *Server) getUserPublicCollectionEnabled(userID int64) (bool, error) {
+	var enabled bool
+	err := s.db.Conn().QueryRow("SELECT public_collection_enabled FROM users WHERE id = ?", userID).Scan(&enabled)
+	if err != nil {
+		return false, err
+	}
+	return enabled, nil
 }
 
 func (s *Server) redirectAdminUsersError(w http.ResponseWriter, r *http.Request, message string) {

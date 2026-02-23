@@ -1,0 +1,80 @@
+{{template "layout.html" .}}
+
+{{define "content"}}
+<div class="card">
+    <div class="page-header">
+        <div>
+            <h1>{{.PublicUsername}}'s Collection</h1>
+            <p class="text-muted mt-0-25">Public view of this collection.</p>
+        </div>
+    </div>
+
+    <form method="get" class="card form-card card-muted">
+        <div class="grid">
+            <div class="form-group">
+                <label for="status">Status</label>
+                <select id="status" name="status">
+                    <option value="">All Status</option>
+                    <option value="active" {{if eq .Status "active"}}selected{{end}}>Active</option>
+                    <option value="sold" {{if eq .Status "sold"}}selected{{end}}>Sold</option>
+                    <option value="donated" {{if eq .Status "donated"}}selected{{end}}>Donated</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="condition">Condition</label>
+                <select id="condition" name="condition">
+                    <option value="">All Conditions</option>
+                    <option value="sealed" {{if eq .Condition "sealed"}}selected{{end}}>Sealed</option>
+                    <option value="open" {{if eq .Condition "open"}}selected{{end}}>Open</option>
+                    <option value="partial" {{if eq .Condition "partial"}}selected{{end}}>Partial</option>
+                    <option value="custom" {{if eq .Condition "custom"}}selected{{end}}>Custom</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="tags">Tags</label>
+                <input type="text" id="tags" name="tags" value="{{.TagInput}}" placeholder="tag, tag">
+            </div>
+            <div class="form-group form-group-end">
+                <button type="submit" class="btn btn-secondary">Filter</button>
+            </div>
+        </div>
+    </form>
+
+    {{if .Items}}
+    <div class="table-scroll">
+        <table class="table-compact">
+            <thead>
+                <tr>
+                    <th>Set</th>
+                    <th>Quantity</th>
+                    <th>Condition</th>
+                    <th>Tags</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Items}}
+                <tr>
+                    <td>{{.Set.Name}} ({{.Set.SetCode}})</td>
+                    <td>{{.Quantity}}</td>
+                    <td><span class="badge badge-{{.Condition}}">{{.Condition}}</span></td>
+                    <td>
+                        {{if .Tags}}
+                        <div class="tag-list">
+                            {{range .Tags}}
+                            <span class="badge badge-neutral">{{.}}</span>
+                            {{end}}
+                        </div>
+                        {{end}}
+                    </td>
+                    <td><span class="badge badge-{{.Status}}">{{.Status}}</span></td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{else}}
+    <p>No collection items available.</p>
+    {{end}}
+</div>
+{{end}}

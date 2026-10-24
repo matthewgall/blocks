@@ -102,6 +102,7 @@ type Session struct {
 
 func SetSessionCookie(w http.ResponseWriter, sessionID string) {
 	secure := os.Getenv("BLOCKS_ENV") == "production"
+	// #nosec G124 -- Secure flag follows BLOCKS_ENV; HttpOnly and SameSite are set.
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session",
 		Value:    sessionID,
@@ -115,6 +116,7 @@ func SetSessionCookie(w http.ResponseWriter, sessionID string) {
 
 func ClearSessionCookie(w http.ResponseWriter) {
 	secure := os.Getenv("BLOCKS_ENV") == "production"
+	// #nosec G124 -- Secure flag follows BLOCKS_ENV; HttpOnly and SameSite are set.
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session",
 		Value:    "",

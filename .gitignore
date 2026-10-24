@@ -1,6 +1,7 @@
 # Binaries
 /blocks
 /blocks.exe
+/bin/
 
 # Application Data
 data/*

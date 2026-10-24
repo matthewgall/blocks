@@ -14,11 +14,12 @@ import (
 
 	"github.com/matthewgall/blocks/internal/config"
 	"github.com/matthewgall/blocks/internal/http/server"
+	"github.com/matthewgall/blocks/internal/version"
 )
 
 var (
 	configFile         = flag.String("config", "config.yaml", "Path to configuration file")
-	version            = flag.Bool("version", false, "Show version information")
+	showVersion        = flag.Bool("version", false, "Show version information")
 	serverAddress      = flag.String("address", "", "Server address (host:port)")
 	serverHost         = flag.String("host", "", "Server host")
 	serverPort         = flag.Int("port", 0, "Server port")
@@ -38,16 +39,13 @@ var (
 	cacheDir           = flag.String("cache-dir", "", "Cache directory")
 )
 
-const (
-	appName    = "Blocks"
-	appVersion = "1.0.0"
-)
+const appName = "Blocks"
 
 func main() {
 	flag.Parse()
 
-	if *version {
-		fmt.Printf("%s v%s\n", appName, appVersion)
+	if *showVersion {
+		fmt.Printf("%s v%s (%s, built %s)\n", appName, version.Version, version.Commit, version.BuildDate)
 		os.Exit(0)
 	}
 

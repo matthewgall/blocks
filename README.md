@@ -238,6 +238,31 @@ tar -xzf backup/uploads-20231201.tar.gz
 
 ## Deployment
 
+### Makefile
+
+A `Makefile` is included for common build and install tasks:
+
+```bash
+# Standard binary (bin/blocks)
+make build
+
+# Fully-static Linux binary (bin/blocks-static)
+make build-static
+
+# Both
+make all
+
+# Run tests and lint
+make test
+make lint
+
+# Install to /opt/blocks (standard or static)
+sudo make install
+sudo make install-static
+```
+
+Builds inject the current git tag, commit, and build date into the binary via `internal/version`.
+
 ### Docker
 
 ```bash
@@ -255,30 +280,46 @@ docker run -d \
 
 ### Systemd Service
 
-Create `/etc/systemd/system/blocks.service`:
+A hardened unit file is provided at `init/systemd/blocks.service`.
 
-```ini
-[Unit]
-Description=Blocks Building Block Collection Manager
-After=network.target
-
-[Service]
-Type=simple
-User=blocks
-WorkingDirectory=/opt/blocks
-ExecStart=/opt/blocks/blocks
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable and start:
+Create the service user and directories, then install the unit:
 
 ```bash
-sudo systemctl enable blocks
-sudo systemctl start blocks
+sudo useradd -r -s /bin/false blocks
+sudo mkdir -p /opt/blocks/data
+sudo cp init/systemd/blocks.service /etc/systemd/system/blocks.service
+
+# Build and install the binary + example config
+sudo make install
+
+# Create and edit your config
+sudo cp /opt/blocks/config.yaml.example /opt/blocks/config.yaml
+sudo chmod 0640 /opt/blocks/config.yaml
+sudo chown blocks:blocks /opt/blocks/config.yaml
+sudo chown -R blocks:blocks /opt/blocks/data
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now blocks
+```
+
+### OpenRC Service
+
+An OpenRC init script is provided at `init/openrc/blocks`. It uses OpenRC's supervise-daemon mode, so restarts are handled by the supervisor if the process exits.
+
+```bash
+sudo useradd -r -s /bin/false blocks
+sudo mkdir -p /opt/blocks/data
+sudo cp init/openrc/blocks /etc/init.d/blocks
+sudo chmod +x /etc/init.d/blocks
+
+sudo make install
+sudo cp /opt/blocks/config.yaml.example /opt/blocks/config.yaml
+sudo chmod 0640 /opt/blocks/config.yaml
+sudo chown blocks:blocks /opt/blocks/config.yaml
+sudo chown -R blocks:blocks /opt/blocks/data
+
+sudo rc-update add blocks default
+sudo rc-service blocks start
 ```
 
 ## Contributing

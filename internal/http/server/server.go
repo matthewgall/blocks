@@ -83,10 +83,11 @@ const csrfContextKey contextKey = "csrf"
 const apiTokenScopeContextKey contextKey = "apiTokenScope"
 
 const (
-	csrfCookieName      = "csrf_token"
-	csrfHeaderName      = "X-CSRF-Token"
-	csrfFormField       = "csrf_token"
-	maxRequestBodyBytes = 1 << 20
+	csrfCookieName           = "csrf_token"
+	csrfHeaderName           = "X-CSRF-Token"
+	csrfFormField            = "csrf_token"
+	maxRequestBodyBytes      = 1 << 20
+	multipartFormMaxMemory   = 1 << 20 // 1 MB memory limit for multipart parsing
 )
 
 const apiTokenTTL = 90 * 24 * time.Hour
@@ -310,6 +311,7 @@ func (s *Server) issueCSRFCookie(w http.ResponseWriter) string {
 	if err != nil {
 		return ""
 	}
+	// #nosec G124 -- Secure flag follows BLOCKS_ENV; HttpOnly and SameSite are set.
 	http.SetCookie(w, &http.Cookie{
 		Name:     csrfCookieName,
 		Value:    token,
@@ -328,7 +330,8 @@ func (s *Server) readCSRFFormValue(w http.ResponseWriter, r *http.Request) strin
 			maxSize = 10 * 1024 * 1024
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, maxSize)
-		if err := r.ParseMultipartForm(maxSize); err != nil {
+		// #nosec G120 -- body size is bounded by MaxBytesReader; memory capped at multipartFormMaxMemory.
+		if err := r.ParseMultipartForm(multipartFormMaxMemory); err != nil {
 			return ""
 		}
 		return r.FormValue(csrfFormField)
@@ -1348,6 +1351,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	auth.ClearSessionCookie(w)
+	// #nosec G124 -- Secure flag follows BLOCKS_ENV; HttpOnly and SameSite are set.
 	http.SetCookie(w, &http.Cookie{
 		Name:     csrfCookieName,
 		Value:    "",
@@ -1579,7 +1583,8 @@ func (s *Server) handleImportUpload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxSize)
-	if err := r.ParseMultipartForm(maxSize); err != nil {
+	// #nosec G120 -- body size is bounded by MaxBytesReader; memory capped at multipartFormMaxMemory.
+	if err := r.ParseMultipartForm(multipartFormMaxMemory); err != nil {
 		redirectWithError(w, r, "/import", "Unable to read upload")
 		return
 	}
@@ -3606,7 +3611,8 @@ func (s *Server) handleCreateCollectionForm(w http.ResponseWriter, r *http.Reque
 		maxSize = 10 * 1024 * 1024
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxSize)
-	if err := r.ParseMultipartForm(maxSize); err != nil {
+	// #nosec G120 -- body size is bounded by MaxBytesReader; memory capped at multipartFormMaxMemory.
+	if err := r.ParseMultipartForm(multipartFormMaxMemory); err != nil {
 		s.renderTemplate(w, r, "collection_form.html", map[string]interface{}{
 			"Error": "Invalid form submission.",
 			"Item":  &models.CollectionItem{},
@@ -3706,7 +3712,8 @@ func (s *Server) handleUpdateCollectionForm(w http.ResponseWriter, r *http.Reque
 		maxSize = 10 * 1024 * 1024
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxSize)
-	if err := r.ParseMultipartForm(maxSize); err != nil {
+	// #nosec G120 -- body size is bounded by MaxBytesReader; memory capped at multipartFormMaxMemory.
+	if err := r.ParseMultipartForm(multipartFormMaxMemory); err != nil {
 		id, idErr := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 		if idErr != nil {
 			http.Error(w, "Invalid ID", http.StatusBadRequest)
@@ -4020,7 +4027,8 @@ func (s *Server) handleCollectionImageUpload(w http.ResponseWriter, r *http.Requ
 		maxSize = 10 * 1024 * 1024
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxSize)
-	if err := r.ParseMultipartForm(maxSize); err != nil {
+	// #nosec G120 -- body size is bounded by MaxBytesReader; memory capped at multipartFormMaxMemory.
+	if err := r.ParseMultipartForm(multipartFormMaxMemory); err != nil {
 		// #nosec G706 -- log only, no sensitive sink.
 		log.Printf("image upload: parse multipart failed for item %d: %v", itemID, err)
 		if isAjax {

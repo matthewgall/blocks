@@ -1,0 +1,28 @@
+#!/sbin/openrc-run
+
+supervisor=supervise-daemon
+command="/opt/blocks/blocks"
+command_args="-config /opt/blocks/config.yaml"
+command_user="blocks:blocks"
+pidfile="/run/${RC_SVCNAME}.pid"
+directory="/opt/blocks"
+output_log="/var/log/blocks.log"
+error_log="/var/log/blocks.err"
+
+name="Blocks"
+description="Blocks Building Block Collection Manager"
+
+depend() {
+	need net
+	after firewall
+}
+
+start_pre() {
+	if [ ! -f /opt/blocks/config.yaml ]; then
+		eerror "Configuration file not found: /opt/blocks/config.yaml"
+		return 1
+	fi
+	checkpath -d -m 0755 -o blocks:blocks /opt/blocks/data || return 1
+	checkpath -f -m 0644 -o blocks:blocks /var/log/blocks.log || return 1
+	checkpath -f -m 0644 -o blocks:blocks /var/log/blocks.err || return 1
+}

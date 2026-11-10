@@ -3,14 +3,15 @@
 {{define "content"}}
 <div class="card">
     <div class="page-header">
-        <h1>Users</h1>
+        <h1 id="users-heading">Users</h1>
         <a href="/admin/users/new" class="btn btn-success">Add User</a>
     </div>
 
     {{template "flash" .}}
 
     {{if .Users}}
-    <table class="table-compact">
+    <div class="table-scroll" tabindex="0" role="region" aria-labelledby="users-heading">
+        <table class="table-compact">
         <thead>
             <tr>
                 <th>Username</th>
@@ -61,7 +62,8 @@
             </tr>
             {{end}}
         </tbody>
-    </table>
+        </table>
+    </div>
     {{else}}
     <p>No users found. Add your first user to get started.</p>
     {{end}}

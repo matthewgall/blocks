@@ -699,19 +699,22 @@
     color: var(--crimson-500);
 }
 
-.modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: #22273466;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 1.5rem;
+dialog {
+    border: none;
+    padding: 0;
+    background: transparent;
+    max-width: 420px;
+    width: 100%;
 }
 
-.modal-backdrop.is-open {
-    display: flex;
+dialog:modal {
+    overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+    background: #22273466;
+    overflow: hidden;
+    overscroll-behavior: contain;
 }
 
 .modal {

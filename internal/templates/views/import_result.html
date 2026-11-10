@@ -51,9 +51,10 @@
 
     <div class="card card-section">
         <div class="page-header">
-            <h2>Applied Changes</h2>
+            <h2 id="applied-changes-heading">Applied Changes</h2>
             <span class="text-muted">Detail</span>
         </div>
+        <div class="table-scroll" tabindex="0" role="region" aria-labelledby="applied-changes-heading">
         <table class="table-compact">
             <thead>
                 <tr>
@@ -74,6 +75,7 @@
                 {{end}}
             </tbody>
         </table>
+        </div>
     </div>
     {{end}}
 </div>

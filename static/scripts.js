@@ -15,14 +15,21 @@ window.Blocks.initSessionTimeout = function (options) {
     var logoutTimer = null;
     var countdownTimer = null;
 
-    var backdrop = document.getElementById("session-timeout-backdrop");
+    var dialog = document.getElementById("session-timeout-dialog");
     var countdownEl = document.getElementById("session-timeout-countdown");
     var stayButton = document.getElementById("session-timeout-stay");
     var logoutButton = document.getElementById("session-timeout-logout");
 
-    if (!backdrop || !countdownEl || !stayButton || !logoutButton) {
+    if (!dialog || !countdownEl || !stayButton || !logoutButton) {
         return;
     }
+
+    // Keep the security warning visible; users should explicitly choose to stay
+    // signed in or wait for automatic logout. closedby="none" handles modern
+    // browsers; this listener covers browsers without support.
+    dialog.addEventListener("cancel", function (event) {
+        event.preventDefault();
+    });
 
     function formatSeconds(value) {
         var total = Math.max(0, Math.floor(value));
@@ -45,8 +52,10 @@ window.Blocks.initSessionTimeout = function (options) {
     }
 
     function showWarning() {
-        backdrop.classList.add("is-open");
-        backdrop.setAttribute("aria-hidden", "false");
+        if (dialog.open) {
+            return;
+        }
+        dialog.showModal();
         var remaining = warnWindow;
         updateCountdown(remaining);
         if (countdownTimer) {
@@ -66,8 +75,9 @@ window.Blocks.initSessionTimeout = function (options) {
     }
 
     function hideWarning() {
-        backdrop.classList.remove("is-open");
-        backdrop.setAttribute("aria-hidden", "true");
+        if (dialog.open) {
+            dialog.close();
+        }
         if (logoutTimer) {
             clearTimeout(logoutTimer);
             logoutTimer = null;

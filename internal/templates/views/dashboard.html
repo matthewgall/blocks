@@ -23,9 +23,10 @@
 
 <div class="grid">
     <div class="card">
-        <h2>Recent Collection Items</h2>
+        <h2 id="recent-items-heading">Recent Collection Items</h2>
         {{if .RecentItems}}
-        <table class="table-compact">
+        <div class="table-scroll" tabindex="0" role="region" aria-labelledby="recent-items-heading">
+            <table class="table-compact">
             <thead>
                 <tr>
                     <th>Set</th>
@@ -44,7 +45,8 @@
                 </tr>
                 {{end}}
             </tbody>
-        </table>
+            </table>
+        </div>
         {{else}}
         <p>No collection items yet. Add a set to start tracking your collection.</p>
         {{end}}

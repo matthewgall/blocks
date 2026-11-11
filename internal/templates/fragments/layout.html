@@ -16,16 +16,15 @@
 <body>
     <header>
         <div class="container">
-            <nav class="site-nav">
+            <nav class="site-nav" aria-label="Primary">
                 <div class="nav-brand">
                     <h1>Blocks</h1>
-                    <label for="nav-toggle" class="nav-toggle-label" aria-label="Toggle navigation">
-                        <span class="nav-toggle-icon"></span>
+                    <button type="button" class="nav-toggle" id="nav-toggle" popovertarget="nav-menu" popovertargetaction="toggle" aria-controls="nav-menu" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="nav-toggle-icon" aria-hidden="true"></span>
                         <span class="nav-toggle-text">Menu</span>
-                    </label>
+                    </button>
                 </div>
-                <input type="checkbox" id="nav-toggle" class="nav-toggle">
-                <ul class="nav-links">
+                <ul id="nav-menu" class="nav-links" popover="auto">
                     {{if .isLoggedIn}}
                     <li><a href="/">Dashboard</a></li>
                     <li><a href="/sets">Sets</a></li>
@@ -72,8 +71,8 @@
 
     {{template "confirm_modal" .}}
     {{if .isLoggedIn}}
-    <div class="modal-backdrop" id="session-timeout-backdrop" aria-hidden="true">
-        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="session-timeout-title" aria-describedby="session-timeout-message">
+    <dialog id="session-timeout-dialog" aria-labelledby="session-timeout-title" aria-describedby="session-timeout-message" closedby="none">
+        <div class="modal">
             <div class="modal-header">
                 <h3 id="session-timeout-title">Still there?</h3>
             </div>
@@ -84,10 +83,24 @@
                 <button type="button" class="btn btn-danger" id="session-timeout-logout">Sign out now</button>
             </div>
         </div>
-    </div>
+    </dialog>
     {{end}}
 
     <script src="/static/scripts.js"></script>
+    <script>
+    (function () {
+        var navMenu = document.getElementById('nav-menu');
+        var navToggle = document.getElementById('nav-toggle');
+        if (!navMenu || !navToggle) {
+            return;
+        }
+        navMenu.addEventListener('toggle', function (event) {
+            if (event.target === navMenu) {
+                navToggle.setAttribute('aria-expanded', String(event.newState === 'open'));
+            }
+        });
+    })();
+    </script>
     {{if .isLoggedIn}}
     <script>
     if (window.Blocks && window.Blocks.initSessionTimeout) {

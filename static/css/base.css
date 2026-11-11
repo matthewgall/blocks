@@ -82,12 +82,6 @@ header {
 }
 
 .nav-toggle {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.nav-toggle-label {
     display: none;
     align-items: center;
     gap: 0.6rem;
@@ -98,9 +92,12 @@ header {
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s ease, color 0.2s ease;
+    border: none;
+    font-family: inherit;
+    font-size: 0.95rem;
 }
 
-.nav-toggle-label:hover {
+.nav-toggle:hover {
     background: rgba(34, 39, 52, 0.16);
     color: var(--ink-900);
 }
@@ -154,6 +151,36 @@ header {
 .nav-links a:hover {
     background-color: rgba(31, 122, 99, 0.12);
     color: var(--ink-900);
+}
+
+.nav-links:is(:popover-open, .\:popover-open) {
+    position: fixed;
+    inset-block-start: 4.75rem;
+    inset-inline-end: 1rem;
+    inline-size: min(80dvw, 24rem);
+    max-inline-size: calc(100dvw - 2rem);
+    block-size: fit-content;
+    max-block-size: calc(100dvh - 6rem);
+    margin-block-start: 0.5rem;
+    overflow: auto;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.5rem;
+    border-radius: 14px;
+    border: 1px solid rgba(203, 211, 225, 0.6);
+    background: var(--surface-strong);
+    box-shadow: var(--shadow-soft);
+}
+
+.nav-links:is(:popover-open, .\:popover-open) li,
+.nav-links:is(:popover-open, .\:popover-open) form {
+    width: 100%;
+}
+
+.nav-links:is(:popover-open, .\:popover-open) a,
+.nav-links:is(:popover-open, .\:popover-open) .btn {
+    width: 100%;
+    justify-content: center;
 }
 
 a {
@@ -216,6 +243,14 @@ th {
     color: var(--ink-700);
 }
 
+@supports selector(:popover-open) {
+    @media (max-width: 768px) {
+        .nav-links[popover]:not(:popover-open) {
+            display: none;
+        }
+    }
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 0 16px;
@@ -232,20 +267,8 @@ th {
         justify-content: space-between;
     }
 
-    .nav-toggle-label {
+    .nav-toggle {
         display: inline-flex;
-    }
-
-    .nav-links {
-        display: none;
-        flex-direction: column;
-        align-items: stretch;
-        padding-top: 0.5rem;
-        border-top: 1px solid rgba(203, 211, 225, 0.6);
-    }
-
-    .nav-toggle:checked ~ .nav-links {
-        display: flex;
     }
 
     .nav-links li,

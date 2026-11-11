@@ -1,38 +1,29 @@
 {{define "confirm_modal"}}
-<div class="modal-backdrop" id="confirm-backdrop" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+<dialog id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-message" closedby="any">
+    <div class="modal">
         <div class="modal-header">
             <h3 id="confirm-title">Please confirm</h3>
         </div>
         <p id="confirm-message" class="text-muted"></p>
-        <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" id="confirm-cancel">Cancel</button>
-            <button type="button" class="btn btn-danger" id="confirm-accept">Confirm</button>
-        </div>
+        <form method="dialog" class="modal-actions">
+            <button type="submit" class="btn btn-secondary" value="cancel">Cancel</button>
+            <button type="submit" class="btn btn-danger" value="confirm">Confirm</button>
+        </form>
     </div>
-</div>
+</dialog>
 
 <script>
 (function () {
-    var backdrop = document.getElementById('confirm-backdrop');
+    var dialog = document.getElementById('confirm-dialog');
     var title = document.getElementById('confirm-title');
     var message = document.getElementById('confirm-message');
-    var cancelButton = document.getElementById('confirm-cancel');
-    var confirmButton = document.getElementById('confirm-accept');
-    var pendingForm = null;
-    var pendingSubmitter = null;
-    var bypassNext = false;
-
-    if (!backdrop || !title || !message || !cancelButton || !confirmButton) {
+    if (!dialog || !title || !message) {
         return;
     }
 
-    function closeModal() {
-        backdrop.classList.remove('is-open');
-        backdrop.setAttribute('aria-hidden', 'true');
-        pendingForm = null;
-        pendingSubmitter = null;
-    }
+    var pendingForm = null;
+    var pendingSubmitter = null;
+    var bypassNext = false;
 
     function openModal(form, submitter) {
         var confirmTitle = 'Please confirm';
@@ -49,9 +40,7 @@
         message.textContent = confirmMessage;
         pendingForm = form;
         pendingSubmitter = submitter || null;
-        backdrop.classList.add('is-open');
-        backdrop.setAttribute('aria-hidden', 'false');
-        confirmButton.focus();
+        dialog.showModal();
     }
 
     document.addEventListener('submit', function (event) {
@@ -78,8 +67,8 @@
         openModal(form, submitter);
     });
 
-    confirmButton.addEventListener('click', function () {
-        if (pendingForm) {
+    dialog.addEventListener('close', function () {
+        if (dialog.returnValue === 'confirm' && pendingForm) {
             bypassNext = true;
             if (pendingSubmitter && pendingForm.requestSubmit) {
                 pendingForm.requestSubmit(pendingSubmitter);
@@ -105,24 +94,30 @@
                 pendingForm.submit();
             }
         }
-        closeModal();
+        pendingForm = null;
+        pendingSubmitter = null;
+        dialog.returnValue = '';
     });
 
-    cancelButton.addEventListener('click', function () {
-        closeModal();
-    });
-
-    backdrop.addEventListener('click', function (event) {
-        if (event.target === backdrop) {
-            closeModal();
-        }
-    });
-
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-            closeModal();
-        }
-    });
+    // Light-dismiss fallback for browsers without closedby support.
+    if (!('closedBy' in HTMLDialogElement.prototype)) {
+        dialog.addEventListener('click', function (event) {
+            if (event.target !== dialog) {
+                return;
+            }
+            var rect = dialog.getBoundingClientRect();
+            var isDialogContent = (
+                rect.top <= event.clientY &&
+                event.clientY <= rect.top + rect.height &&
+                rect.left <= event.clientX &&
+                event.clientX <= rect.left + rect.width
+            );
+            if (isDialogContent) {
+                return;
+            }
+            dialog.close();
+        });
+    }
 })();
 </script>
 {{end}}

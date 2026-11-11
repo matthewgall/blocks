@@ -3,7 +3,7 @@
 {{define "content"}}
 <div class="card">
     <div class="page-header">
-        <h1>Collection Items</h1>
+        <h1 id="collection-items-heading">Collection Items</h1>
         {{if ne .role "viewer"}}
         <a href="/collection/new" class="btn btn-success">Add Item</a>
         {{end}}
@@ -11,6 +11,7 @@
 
     {{template "flash" .}}
 
+    <search>
     <form method="get" class="card form-card card-muted">
         <div class="grid">
             <div class="form-group">
@@ -41,9 +42,10 @@
             </div>
         </div>
     </form>
+    </search>
 
     {{if .Items}}
-    <div class="table-scroll">
+    <div class="table-scroll" tabindex="0" role="region" aria-labelledby="collection-items-heading">
         <table class="table-compact">
             <thead>
                 <tr>

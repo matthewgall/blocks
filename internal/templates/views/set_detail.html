@@ -109,8 +109,8 @@
             {{if .ValuationEnabled}}
             {{if .Valuations}}
             <div class="card">
-                <h3>Valuations</h3>
-                <div class="table-scroll">
+                <h3 id="valuations-heading">Valuations</h3>
+                <div class="table-scroll" tabindex="0" role="region" aria-labelledby="valuations-heading">
                     <table class="table-compact">
                         <thead>
                             <tr>
@@ -232,9 +232,8 @@
     </div>
 </div>
 
-<div class="lightbox" id="collection-lightbox" aria-hidden="true" role="dialog" aria-label="Collection image preview">
-    <button type="button" class="lightbox-backdrop" data-lightbox-close aria-label="Close"></button>
-    <div class="lightbox-content" role="document">
+<dialog id="collection-lightbox" aria-label="Collection image preview" closedby="any">
+    <div class="lightbox-content">
         <button type="button" class="lightbox-close" data-lightbox-close aria-label="Close">Close</button>
         <div class="lightbox-nav">
             <button type="button" class="lightbox-nav-btn" data-lightbox-prev aria-label="Previous image">Prev</button>
@@ -242,7 +241,7 @@
         </div>
         <img src="" alt="Collection image" id="collection-lightbox-image">
     </div>
-</div>
+</dialog>
 
 <script>
 function refreshValuation(setId, provider) {
@@ -285,13 +284,15 @@ function refreshValuation(setId, provider) {
         }
         currentIndex = sources.indexOf(src);
         image.src = src;
-        lightbox.setAttribute('aria-hidden', 'false');
-        document.body.classList.add('lightbox-open');
+        if (!lightbox.open) {
+            lightbox.showModal();
+        }
     }
 
     function closeLightbox() {
-        lightbox.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('lightbox-open');
+        if (lightbox.open) {
+            lightbox.close();
+        }
         image.src = '';
         currentIndex = -1;
     }
@@ -343,17 +344,13 @@ function refreshValuation(setId, provider) {
         });
     }
 
-    document.addEventListener('keydown', function (event) {
-        if (lightbox.getAttribute('aria-hidden') === 'true') {
-            return;
-        }
-        if (event.key === 'Escape') {
-            closeLightbox();
-        }
+    lightbox.addEventListener('keydown', function (event) {
         if (event.key === 'ArrowLeft') {
+            event.preventDefault();
             showImageAt(currentIndex - 1);
         }
         if (event.key === 'ArrowRight') {
+            event.preventDefault();
             showImageAt(currentIndex + 1);
         }
     });

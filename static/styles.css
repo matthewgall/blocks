@@ -151,6 +151,22 @@ header {
   background-color: #1f7a631f;
 }
 
+.nav-links[popover]:not(:popover-open) {
+  display: flex;
+  position: static;
+  overflow: visible;
+  box-shadow: none;
+  background: none;
+  border: none;
+  block-size: auto;
+  max-block-size: none;
+  inline-size: auto;
+  max-inline-size: none;
+  margin: 0;
+  padding: 0;
+  inset: auto;
+}
+
 .nav-links:-webkit-any(:popover-open, .\:popover-open) {
   position: fixed;
   overflow: auto;

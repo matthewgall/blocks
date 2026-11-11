@@ -19,7 +19,7 @@
             <nav class="site-nav" aria-label="Primary">
                 <div class="nav-brand">
                     <h1>Blocks</h1>
-                    <button type="button" class="nav-toggle" id="nav-toggle" popovertarget="nav-menu" popovertargetaction="toggle" aria-controls="nav-menu" aria-expanded="false" aria-label="Toggle navigation">
+                    <button type="button" class="nav-toggle" id="nav-toggle" aria-controls="nav-menu" aria-expanded="false" aria-label="Toggle navigation">
                         <span class="nav-toggle-icon" aria-hidden="true"></span>
                         <span class="nav-toggle-text">Menu</span>
                     </button>
@@ -114,8 +114,24 @@
         }
 
         function updateLayout() {
-            setPopover(!measure());
+            var wide = measure();
+            setPopover(!wide);
+            navMenu.classList.remove('is-open');
+            navToggle.setAttribute('aria-expanded', 'false');
         }
+
+        navToggle.addEventListener('click', function () {
+            if (supportsPopover && navMenu.hasAttribute('popover')) {
+                if (navMenu.matches(':popover-open')) {
+                    navMenu.hidePopover();
+                } else {
+                    navMenu.showPopover();
+                }
+            } else {
+                var isOpen = navMenu.classList.toggle('is-open');
+                navToggle.setAttribute('aria-expanded', String(isOpen));
+            }
+        });
 
         navMenu.addEventListener('toggle', function (event) {
             if (event.target === navMenu) {

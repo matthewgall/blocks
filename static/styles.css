@@ -171,7 +171,7 @@ header {
   inset: auto;
 }
 
-.nav-links:-webkit-any(:popover-open, .\:popover-open) {
+.nav-links:-webkit-any(:popover-open, .is-open) {
   position: fixed;
   overflow: auto;
   background: var(--surface-strong);
@@ -190,7 +190,7 @@ header {
   top: 4.75rem;
 }
 
-.nav-links:-moz-any(:popover-open, .\:popover-open) {
+.nav-links:-moz-any(:popover-open, .is-open) {
   position: fixed;
   overflow: auto;
   background: var(--surface-strong);
@@ -209,7 +209,7 @@ header {
   top: 4.75rem;
 }
 
-.nav-links:is(:popover-open, .\:popover-open) {
+.nav-links:is(:popover-open, .is-open) {
   position: fixed;
   overflow: auto;
   background: var(--surface-strong);
@@ -228,80 +228,80 @@ header {
   top: 4.75rem;
 }
 
-.nav-links:-webkit-any(:popover-open, .\:popover-open):not(:-webkit-any(:lang(ae), :lang(ar), :lang(arc), :lang(bcc), :lang(bqi), :lang(ckb), :lang(dv), :lang(fa), :lang(glk), :lang(he), :lang(ku), :lang(mzn), :lang(nqo), :lang(pnb), :lang(ps), :lang(sd), :lang(ug), :lang(ur), :lang(yi))) {
+.nav-links:-webkit-any(:popover-open, .is-open):not(:-webkit-any(:lang(ae), :lang(ar), :lang(arc), :lang(bcc), :lang(bqi), :lang(ckb), :lang(dv), :lang(fa), :lang(glk), :lang(he), :lang(ku), :lang(mzn), :lang(nqo), :lang(pnb), :lang(ps), :lang(sd), :lang(ug), :lang(ur), :lang(yi))) {
   right: 1rem;
 }
 
-.nav-links:-moz-any(:popover-open, .\:popover-open):not(:-moz-any(:lang(ae), :lang(ar), :lang(arc), :lang(bcc), :lang(bqi), :lang(ckb), :lang(dv), :lang(fa), :lang(glk), :lang(he), :lang(ku), :lang(mzn), :lang(nqo), :lang(pnb), :lang(ps), :lang(sd), :lang(ug), :lang(ur), :lang(yi))) {
+.nav-links:-moz-any(:popover-open, .is-open):not(:-moz-any(:lang(ae), :lang(ar), :lang(arc), :lang(bcc), :lang(bqi), :lang(ckb), :lang(dv), :lang(fa), :lang(glk), :lang(he), :lang(ku), :lang(mzn), :lang(nqo), :lang(pnb), :lang(ps), :lang(sd), :lang(ug), :lang(ur), :lang(yi))) {
   right: 1rem;
 }
 
-.nav-links:is(:popover-open, .\:popover-open):not(:is(:lang(ae), :lang(ar), :lang(arc), :lang(bcc), :lang(bqi), :lang(ckb), :lang(dv), :lang(fa), :lang(glk), :lang(he), :lang(ku), :lang(mzn), :lang(nqo), :lang(pnb), :lang(ps), :lang(sd), :lang(ug), :lang(ur), :lang(yi))) {
+.nav-links:is(:popover-open, .is-open):not(:is(:lang(ae), :lang(ar), :lang(arc), :lang(bcc), :lang(bqi), :lang(ckb), :lang(dv), :lang(fa), :lang(glk), :lang(he), :lang(ku), :lang(mzn), :lang(nqo), :lang(pnb), :lang(ps), :lang(sd), :lang(ug), :lang(ur), :lang(yi))) {
   right: 1rem;
 }
 
-.nav-links:-webkit-any(:popover-open, .\:popover-open):-webkit-any(:lang(ae), :lang(ar), :lang(arc), :lang(bcc), :lang(bqi), :lang(ckb), :lang(dv), :lang(fa), :lang(glk), :lang(he), :lang(ku), :lang(mzn), :lang(nqo), :lang(pnb), :lang(ps), :lang(sd), :lang(ug), :lang(ur), :lang(yi)) {
+.nav-links:-webkit-any(:popover-open, .is-open):-webkit-any(:lang(ae), :lang(ar), :lang(arc), :lang(bcc), :lang(bqi), :lang(ckb), :lang(dv), :lang(fa), :lang(glk), :lang(he), :lang(ku), :lang(mzn), :lang(nqo), :lang(pnb), :lang(ps), :lang(sd), :lang(ug), :lang(ur), :lang(yi)) {
   left: 1rem;
 }
 
-.nav-links:-moz-any(:popover-open, .\:popover-open):-moz-any(:lang(ae), :lang(ar), :lang(arc), :lang(bcc), :lang(bqi), :lang(ckb), :lang(dv), :lang(fa), :lang(glk), :lang(he), :lang(ku), :lang(mzn), :lang(nqo), :lang(pnb), :lang(ps), :lang(sd), :lang(ug), :lang(ur), :lang(yi)) {
+.nav-links:-moz-any(:popover-open, .is-open):-moz-any(:lang(ae), :lang(ar), :lang(arc), :lang(bcc), :lang(bqi), :lang(ckb), :lang(dv), :lang(fa), :lang(glk), :lang(he), :lang(ku), :lang(mzn), :lang(nqo), :lang(pnb), :lang(ps), :lang(sd), :lang(ug), :lang(ur), :lang(yi)) {
   left: 1rem;
 }
 
-.nav-links:is(:popover-open, .\:popover-open):is(:lang(ae), :lang(ar), :lang(arc), :lang(bcc), :lang(bqi), :lang(ckb), :lang(dv), :lang(fa), :lang(glk), :lang(he), :lang(ku), :lang(mzn), :lang(nqo), :lang(pnb), :lang(ps), :lang(sd), :lang(ug), :lang(ur), :lang(yi)) {
+.nav-links:is(:popover-open, .is-open):is(:lang(ae), :lang(ar), :lang(arc), :lang(bcc), :lang(bqi), :lang(ckb), :lang(dv), :lang(fa), :lang(glk), :lang(he), :lang(ku), :lang(mzn), :lang(nqo), :lang(pnb), :lang(ps), :lang(sd), :lang(ug), :lang(ur), :lang(yi)) {
   left: 1rem;
 }
 
-.nav-links:-webkit-any(:popover-open, .\:popover-open) li {
+.nav-links:-webkit-any(:popover-open, .is-open) li {
   width: 100%;
 }
 
-.nav-links:-moz-any(:popover-open, .\:popover-open) li {
+.nav-links:-moz-any(:popover-open, .is-open) li {
   width: 100%;
 }
 
-.nav-links:is(:popover-open, .\:popover-open) li {
+.nav-links:is(:popover-open, .is-open) li {
   width: 100%;
 }
 
-.nav-links:-webkit-any(:popover-open, .\:popover-open) form {
+.nav-links:-webkit-any(:popover-open, .is-open) form {
   width: 100%;
 }
 
-.nav-links:-moz-any(:popover-open, .\:popover-open) form {
+.nav-links:-moz-any(:popover-open, .is-open) form {
   width: 100%;
 }
 
-.nav-links:is(:popover-open, .\:popover-open) form {
+.nav-links:is(:popover-open, .is-open) form {
   width: 100%;
 }
 
-.nav-links:-webkit-any(:popover-open, .\:popover-open) a {
+.nav-links:-webkit-any(:popover-open, .is-open) a {
   justify-content: center;
   width: 100%;
 }
 
-.nav-links:-moz-any(:popover-open, .\:popover-open) a {
+.nav-links:-moz-any(:popover-open, .is-open) a {
   justify-content: center;
   width: 100%;
 }
 
-.nav-links:is(:popover-open, .\:popover-open) a {
+.nav-links:is(:popover-open, .is-open) a {
   justify-content: center;
   width: 100%;
 }
 
-.nav-links:-webkit-any(:popover-open, .\:popover-open) .btn {
+.nav-links:-webkit-any(:popover-open, .is-open) .btn {
   justify-content: center;
   width: 100%;
 }
 
-.nav-links:-moz-any(:popover-open, .\:popover-open) .btn {
+.nav-links:-moz-any(:popover-open, .is-open) .btn {
   justify-content: center;
   width: 100%;
 }
 
-.nav-links:is(:popover-open, .\:popover-open) .btn {
+.nav-links:is(:popover-open, .is-open) .btn {
   justify-content: center;
   width: 100%;
 }

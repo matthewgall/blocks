@@ -175,7 +175,7 @@ header {
     box-shadow: none;
 }
 
-.nav-links:is(:popover-open, .\:popover-open) {
+.nav-links:is(:popover-open, .is-open) {
     position: fixed;
     inset-block-start: 4.75rem;
     inset-inline-end: 1rem;
@@ -194,13 +194,13 @@ header {
     box-shadow: var(--shadow-soft);
 }
 
-.nav-links:is(:popover-open, .\:popover-open) li,
-.nav-links:is(:popover-open, .\:popover-open) form {
+.nav-links:is(:popover-open, .is-open) li,
+.nav-links:is(:popover-open, .is-open) form {
     width: 100%;
 }
 
-.nav-links:is(:popover-open, .\:popover-open) a,
-.nav-links:is(:popover-open, .\:popover-open) .btn {
+.nav-links:is(:popover-open, .is-open) a,
+.nav-links:is(:popover-open, .is-open) .btn {
     width: 100%;
     justify-content: center;
 }

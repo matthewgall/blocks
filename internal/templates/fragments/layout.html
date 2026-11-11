@@ -24,7 +24,7 @@
                         <span class="nav-toggle-text">Menu</span>
                     </button>
                 </div>
-                <ul id="nav-menu" class="nav-links" popover="auto">
+                <ul id="nav-menu" class="nav-links">
                     {{if .isLoggedIn}}
                     <li><a href="/">Dashboard</a></li>
                     <li><a href="/sets">Sets</a></li>
@@ -89,16 +89,47 @@
     <script src="/static/scripts.js"></script>
     <script>
     (function () {
+        var siteNav = document.querySelector('.site-nav');
         var navMenu = document.getElementById('nav-menu');
         var navToggle = document.getElementById('nav-toggle');
-        if (!navMenu || !navToggle) {
+        if (!siteNav || !navMenu || !navToggle) {
             return;
         }
+
+        var supportsPopover = Object.hasOwn(HTMLElement.prototype, 'popover');
+
+        function setPopover(enabled) {
+            if (enabled && supportsPopover) {
+                navMenu.setAttribute('popover', 'auto');
+            } else {
+                navMenu.removeAttribute('popover');
+            }
+        }
+
+        function measure() {
+            siteNav.classList.add('is-measuring');
+            var fits = siteNav.scrollWidth <= siteNav.clientWidth;
+            siteNav.classList.remove('is-measuring');
+            return fits;
+        }
+
+        function updateLayout() {
+            setPopover(!measure());
+        }
+
         navMenu.addEventListener('toggle', function (event) {
             if (event.target === navMenu) {
                 navToggle.setAttribute('aria-expanded', String(event.newState === 'open'));
             }
         });
+
+        if ('ResizeObserver' in window) {
+            var ro = new ResizeObserver(updateLayout);
+            ro.observe(siteNav);
+        } else {
+            window.addEventListener('resize', updateLayout);
+        }
+        updateLayout();
     })();
     </script>
     {{if .isLoggedIn}}

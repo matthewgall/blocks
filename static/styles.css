@@ -67,6 +67,10 @@ header {
   padding: 1.25rem 0;
 }
 
+.site-nav.is-measuring * {
+  transition: none !important;
+}
+
 .nav-brand {
   display: flex;
   align-items:  center;

@@ -68,6 +68,10 @@ header {
     gap: 1.5rem;
 }
 
+.site-nav.is-measuring * {
+    transition: none !important;
+}
+
 .nav-brand {
     display: flex;
     align-items: center;
